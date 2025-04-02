@@ -9,26 +9,42 @@
   "categories": [
     "Other"
   ],
+  "activationEvents": [
+    "onCommand:courseIDE.showMainInterface"
+  ],
   "contributes": {
+    "commands": [
+      {
+        "command": "courseIDE.showMainInterface",
+        "title": "显示插件主界面"
+      },
+      {
+        "command": "courseIDE.openExistingCourse",
+        "title": "打开已有课程"
+      },
+      {
+        "command": "courseIDE.previewFile",
+        "title": "预览文件"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "courseDashboard",
+          "title": "Course IDE",
+          "icon": "images/course.png"
+        }
+      ]
+    },
     "views": {
-      "explorer": [
+      "courseDashboard": [
         {
           "id": "courseView",
           "name": "课程列表"
         }
       ]
-    },
-    "commands": [
-      {
-        "command": "courseIDE.openWebview",
-        "title": "Open Course Webview"
-      }
-    ]
+    }
   },
-  "activationEvents": [
-    "onView:courseView",
-    "onCommand:courseIDE.openWebview"
-  ],
   "main": "./out/extension.js",
   "scripts": {
     "vscode:prepublish": "npm run package",

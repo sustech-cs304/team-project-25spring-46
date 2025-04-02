@@ -1,50 +1,93 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 
-// 自定义树节点类
 export class CourseItem extends vscode.TreeItem {
     constructor(
         public readonly label: string,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-        public readonly command?: vscode.Command
+        public readonly command?: vscode.Command,
+        public readonly resourceUri?: vscode.Uri
     ) {
         super(label, collapsibleState);
     }
 }
 
-// 实现 TreeDataProvider 接口
 export class CourseTreeDataProvider implements vscode.TreeDataProvider<CourseItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<CourseItem | undefined | null | void> = new vscode.EventEmitter<CourseItem | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<CourseItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
-    // 静态的课程列表数据
-    private courses: CourseItem[] = [
-        new CourseItem('课程1：基础', vscode.TreeItemCollapsibleState.None, {
-            command: 'courseIDE.openWebview',
-            title: '打开课程详情',
-            arguments: [new CourseItem('课程1：基础', vscode.TreeItemCollapsibleState.None)]
-        }),
-        new CourseItem('课程2：进阶', vscode.TreeItemCollapsibleState.None, {
-            command: 'courseIDE.openWebview',
-            title: '打开课程详情',
-            arguments: [new CourseItem('课程2：进阶', vscode.TreeItemCollapsibleState.None)]
-        }),
-        new CourseItem('课程3：高级', vscode.TreeItemCollapsibleState.None, {
-            command: 'courseIDE.openWebview',
-            title: '打开课程详情',
-            arguments: [new CourseItem('课程3：高级', vscode.TreeItemCollapsibleState.None)]
-        })
-    ];
+    private courses: CourseItem[] = [];
+
+    constructor(private context: vscode.ExtensionContext) {
+        // 从 globalState 中加载已保存的课程列表
+        const storedCourses = context.globalState.get<{ name: string, path: string }[]>('courses') || [];
+        this.courses = storedCourses.map(course => new CourseItem(
+            course.name,
+            vscode.TreeItemCollapsibleState.Collapsed,
+            {
+                command: 'courseIDE.openExistingCourse',
+                title: '打开课程',
+                arguments: [course.path]
+            },
+            vscode.Uri.file(course.path)
+        ));
+    }
 
     getTreeItem(element: CourseItem): vscode.TreeItem {
         return element;
     }
 
     getChildren(element?: CourseItem): Thenable<CourseItem[]> {
-        // 如果 element 为 undefined，则返回根节点数组
         if (!element) {
             return Promise.resolve(this.courses);
         }
-        // 当前例子中没有子节点，返回空数组
+        const folderPath = element.resourceUri ? element.resourceUri.fsPath : (element.command?.arguments ? element.command.arguments[0] : undefined);
+        if (folderPath) {
+            try {
+                const fileNames = fs.readdirSync(folderPath);
+                const children = fileNames.map((name: string) => {
+                    const fullPath = path.join(folderPath, name);
+                    const stat = fs.statSync(fullPath);
+                    return new CourseItem(
+                        name,
+                        stat.isDirectory() ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None,
+                        stat.isDirectory() ? {
+                            command: 'courseIDE.openExistingCourse',
+                            title: '打开文件夹',
+                            arguments: [fullPath]
+                        } : {
+                            command: 'courseIDE.previewFile',
+                            title: '预览文件',
+                            arguments: [fullPath]
+                        },
+                        vscode.Uri.file(fullPath)
+                    );
+                });
+                return Promise.resolve(children);
+            } catch (error) {
+                return Promise.resolve([]);
+            }
+        }
         return Promise.resolve([]);
+    }
+
+    public addCourse(name: string, coursePath: string) {
+        let storedCourses = this.context.globalState.get<{ name: string, path: string }[]>('courses') || [];
+        if (!storedCourses.find(course => course.path === coursePath)) {
+            storedCourses.push({ name, path: coursePath });
+            this.context.globalState.update('courses', storedCourses);
+            this.courses.push(new CourseItem(
+                name,
+                vscode.TreeItemCollapsibleState.Collapsed,
+                {
+                    command: 'courseIDE.openExistingCourse',
+                    title: '打开课程',
+                    arguments: [coursePath]
+                },
+                vscode.Uri.file(coursePath)
+            ));
+            this._onDidChangeTreeData.fire();
+        }
     }
 }
