@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { showMainInterface } from './MainInterface';
 import { CourseTreeDataProvider } from './CourseTreeDataProvider';
+import { CommentManager } from './share/src/commentManager';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Extension "courseIDE" is now active!');
@@ -22,6 +23,13 @@ export function activate(context: vscode.ExtensionContext) {
         openFilePreviewPanel(vscode.Uri.file(filePath), context);
     }));
 
+    // 注册评论功能命令
+    context.subscriptions.push(vscode.commands.registerCommand('courseIDE.openShareComments', (lectureId: string, lectureUrl: string) => {
+        vscode.window.showInformationMessage('打开课件评论共享功能');
+        const commentManager = new CommentManager(context.extensionUri);
+        commentManager.showCommentEntryUI();
+    }));
+
     // 可选：左侧 TreeView 展示课程列表（同步 globalState 中的课程）
     const treeDataProvider = new CourseTreeDataProvider(context);
     const treeView = vscode.window.createTreeView('courseView', { treeDataProvider });
@@ -29,8 +37,13 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 function openFilePreviewPanel(fileUri: vscode.Uri, context: vscode.ExtensionContext) {
-    // 如果是 PDF 文件，直接用 VSCode 打开（默认或已安装的 PDF 预览插件）
-    if (path.extname(fileUri.fsPath).toLowerCase() === '.pdf') {
+    const fileExt = path.extname(fileUri.fsPath).toLowerCase();
+
+    // 支持的文件类型列表
+    const supportedFileTypes = ['.pdf', '.py', '.c', '.md', '.pptx', '.txt'];
+
+    // 如果文件类型在支持的类型列表中，直接使用 vscode.open 打开
+    if (supportedFileTypes.includes(fileExt)) {
         vscode.commands.executeCommand('vscode.open', fileUri);
         return;
     }
