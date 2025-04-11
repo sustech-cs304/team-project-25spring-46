@@ -10,7 +10,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:courseIDE.showMainInterface"
+    "onCommand:courseIDE.showMainInterface",
+    "onCommand:courseIDE.startCollaboration"
   ],
   "contributes": {
     "commands": [
@@ -25,6 +26,10 @@
       {
         "command": "courseIDE.previewFile",
         "title": "预览文件"
+      },
+      {
+        "command": "courseIDE.startCollaboration",
+        "title": "开启共享编辑"
       }
     ],
     "viewsContainers": {
@@ -359,6 +364,9 @@
     "yargs-unparser": "^2.0.0",
     "yocto-queue": "^0.1.0"
   },
+  "extensionDependencies": [
+    "ms-vsliveshare.vsliveshare"
+  ],
   "keywords": [],
   "author": "",
   "license": "ISC",
