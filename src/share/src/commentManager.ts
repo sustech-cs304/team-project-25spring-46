@@ -261,7 +261,7 @@ export class CommentManager {
   }
 
   private renderCommentsHtml(lectureId: string, lectureUrl: string, comments: any[], webview: vscode.Webview): string {
-    const commentList = comments.map(c => `<p><strong>${c.author}</strong>: ${c.content} <em>(${new Date(c.created_at).toLocaleString()})</em></p>`).join('');
+    const commentList = comments.map(c => `<p><strong>${c.author}</strong>: ${c.content} <em>(${new Date(c.created_at).toLocaleString()}, 第 ${c.position} 页)</em></p>`).join('');
     
     // 1. 获取 PDF.js viewer.html 的 URI（基于 extensionUri 和 webview 权限）
     const viewerPath = vscode.Uri.joinPath(
@@ -288,6 +288,10 @@ export class CommentManager {
           <hr />
           <input type="text" id="author" placeholder="Your name" /><br />
           <textarea id="comment" rows="4" cols="60"></textarea><br />
+          <label for="pageSelect">选择页码:</label>
+          <select id="pageSelect">
+            ${Array.from({length: 30}, (_, i) => `<option value="${i + 1}">第 ${i + 1} 页</option>`).join('')}
+          </select><br />
           <button onclick="submitComment()">Submit</button>
 
           <script>
@@ -295,10 +299,12 @@ export class CommentManager {
             function submitComment() {
               const author = document.getElementById('author').value;
               const content = document.getElementById('comment').value;
+              const position = document.getElementById('pageSelect').value;
               vscode.postMessage({
                 command: 'addComment',
                 author,
-                content
+                content,
+                position
               });
             }
           </script>
