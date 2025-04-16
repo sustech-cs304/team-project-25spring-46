@@ -143,6 +143,7 @@ function getHtmlForWebview(): string {
     <html lang="zh-CN">
     <head>
         <meta charset="UTF-8">
+        <!-- 添加 Content-Security-Policy 确保脚本执行 -->
         <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' vscode-resource:; style-src 'unsafe-inline' vscode-resource:;">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>课程资源管理</title>
@@ -244,7 +245,7 @@ function getHtmlForWebview(): string {
                     }
                 }
             });
-            
+            // 页面加载时自动请求课程列表
             vscode.postMessage({ command: 'listCourses' });
         </script>
     </body>
