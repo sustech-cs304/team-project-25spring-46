@@ -1,0 +1,4 @@
+node_modules/
+out/
+vite_test/node_modules
+__pycache__
