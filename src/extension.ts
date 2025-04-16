@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import { createNewCourse, getCourses, getCourseSubfolderFiles, getFileDetails} from './courseService';
 import { exec } from 'child_process';
 import pool from './database';
+import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -92,53 +93,70 @@ export function activate(context: vscode.ExtensionContext) {
 						panel.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
-					case 'getFileDetails':
-						try {
-						  const details = await getFileDetails(message.filePath);
-						  panel.webview.postMessage({ command: 'fileDetails', details });
-						} catch (error: any) {
-						  panel.webview.postMessage({ command: 'error', error: error.message });
-						}
-						break;
-				  
-					case 'runCodeRecognition':
+				case 'getFileDetails':
 					try {
-						const parts = message.filePath.split("/");
-						const courseName = parts[0];
-						const subfolder = parts[1];
-						const filename = parts.slice(2).join("/");
-						const res = await pool.query("SELECT folder_path FROM courses WHERE name = $1", [courseName]);
-						console.log("数据库返回结果:", res.rows);
-						const coursePath = res.rows[0].folder_path;
-						const absolutePath = path.join(coursePath, subfolder, filename);
-						const scriptPath = path.join(context.extensionPath, 'src', 'pdf_test.py');
-						const outPath = path.join(context.extensionPath, 'cr_out');
-						const pythonPath = "C:\\ProgramData\\miniconda3\\python.exe";
-						console.log("executing python script with filePath: ", absolutePath, scriptPath, outPath);
-						exec(`"${pythonPath}" "${scriptPath}" "${absolutePath}" "${outPath}"`, (error, stdout, stderr) => {
-						if (error) {
-							panel.webview.postMessage({ command: 'error', error: error.message });
-							return;
-						}
-				
-						// 解析输出的代码文件路径 (每一行一个)
-						const codeFiles = stdout.trim().split('\n');
-						// Promise.all(codeFiles.map(async (codePath) => ({
-						// 	path: codePath,
-						// 	content: await fs.promises.readFile(codePath, 'utf-8')
-						// }))).then((codes) => {
-						// 	panel.webview.postMessage({ command: 'codeRecognitionResult', codes });
-						// });
-						const codes = codeFiles.map((content, index) => ({
-							path: `Snippet ${index + 1}`,
-							content
-						  }));
-						  panel.webview.postMessage({ command: 'codeRecognitionResult', codes });
-						});
-					} catch (err: any) {
-						panel.webview.postMessage({ command: 'error', error: err.message });
+						const details = await getFileDetails(message.filePath);
+						panel.webview.postMessage({ command: 'fileDetails', details });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
+				
+				case 'runCodeRecognition':
+				try {
+					const parts = message.filePath.split("/");
+					const courseName = parts[0];
+					const subfolder = parts[1];
+					const filename = parts.slice(2).join("/");
+					const res = await pool.query("SELECT folder_path FROM courses WHERE name = $1", [courseName]);
+					console.log("数据库返回结果:", res.rows);
+					const coursePath = res.rows[0].folder_path;
+					const absolutePath = path.join(coursePath, subfolder, filename);
+					const scriptPath = path.join(context.extensionPath, 'src', 'pdf_test.py');
+					const outPath = path.join(context.extensionPath, 'cr_out');
+					const pythonPath = "C:\\ProgramData\\miniconda3\\python.exe";
+					console.log("executing python script with filePath: ", absolutePath, scriptPath, outPath);
+					exec(`"${pythonPath}" "${scriptPath}" "${absolutePath}" "${outPath}"`, (error, stdout, stderr) => {
+					if (error) {
+						panel.webview.postMessage({ command: 'error', error: error.message });
+						return;
+					}
+			
+					// 解析输出的代码文件路径 (每一行一个)
+					const codeFiles = stdout.trim().split('\n');
+					// Promise.all(codeFiles.map(async (codePath) => ({
+					// 	path: codePath,
+					// 	content: await fs.promises.readFile(codePath, 'utf-8')
+					// }))).then((codes) => {
+					// 	panel.webview.postMessage({ command: 'codeRecognitionResult', codes });
+					// });
+					const codes = codeFiles.map((content, index) => ({
+						path: `Snippet ${index + 1}`,
+						content
+						}));
+						panel.webview.postMessage({ command: 'codeRecognitionResult', codes });
+					});
+				} catch (err: any) {
+					panel.webview.postMessage({ command: 'error', error: err.message });
+				}
+				break;
+				case 'generateSummary':
+					try {
+						const summary = await generateAISummary(message.filePath);
+						panel.webview.postMessage({ command: 'aiSummaryResult', content: summary });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'aiError', error: error.message });
+					}
+					break;
+			
+				case 'generateQuiz':
+				try {
+					const quiz = await generateAIQuiz(message.filePath);
+					panel.webview.postMessage({ command: 'aiQuizResult', content: quiz });
+				} catch (error: any) {
+					panel.webview.postMessage({ command: 'aiError', error: error.message });
+				}
+				break;
 				default:
 				  vscode.window.showInformationMessage(`未识别的命令: ${message.command}`);
 				  break;

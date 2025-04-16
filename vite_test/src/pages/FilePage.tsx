@@ -171,6 +171,9 @@ export default function FilePage({ filePath }: { filePath: string }) {
   const [likes, setLikes] = useState<{ [key: number]: number }>({});
   const [replies, setReplies] = useState<{ [key: number]: string[] }>({});
   const [replyInput, setReplyInput] = useState<{ [key: number]: string }>({});
+  const [aiResult, setAiResult] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResultType, setAiResultType] = useState<"summary" | "quiz" | null>(null);
   const comments = [
     { user: "Alice", time: "2025-04-11 14:22", content: "这个文件讲得很清楚👍", page: "Lecture1.pdf", location: "第3页" },
     { user: "Bob", time: "2025-04-11 16:05", content: "有个地方我没看懂，第三页第二段。", page: "Lecture1.pdf", location: "第3页" },
@@ -205,8 +208,15 @@ export default function FilePage({ filePath }: { filePath: string }) {
         setFileDetails(message.details);
       } else if (message.command === 'codeRecognitionResult') {
         setCodeFiles(message.codes);
+      } else if (message.command === "aiSummaryResult") {
+        setAiResult(message.content);
+        setAiResultType("summary");
+        setAiLoading(false);
+      } else if (message.command === "aiQuizResult") {
+        setAiResult(message.content);
+        setAiResultType("quiz");
+        setAiLoading(false);
       } else if (message.command === 'error') {
-        // alert(`出错：${message.error}`);
         console.error("出错：", message.error);
       }
     };
@@ -221,6 +231,25 @@ export default function FilePage({ filePath }: { filePath: string }) {
     vscode && vscode.postMessage({ command: 'runCodeRecognition', filePath });
     setShowCode(true);
   };
+  const generateSummary = () => {
+    if (vscode) {
+      setAiLoading(true);
+      vscode.postMessage({ command: "generateSummary", filePath });
+    }
+  };
+
+  // AI生成助手：生成测试题
+  const generateQuiz = () => {
+    if (vscode) {
+      setAiLoading(true);
+      vscode.postMessage({ command: "generateQuiz", filePath });
+    }
+  };
+
+
+  if (!vscode) {
+    return <div className="p-10 text-center text-red-500">无法加载 VSCode API，请确认环境。</div>;
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-10">
@@ -288,12 +317,44 @@ export default function FilePage({ filePath }: { filePath: string }) {
         </div>
       )}
     </div>
-      {/* AI助手区块 */}
+      {/* AI生成助手区块 */}
       <div className="bg-white shadow p-4 rounded-xl">
         <h2 className="text-xl font-semibold mb-4">🤖 AI 生成助手</h2>
         <div className="flex gap-4">
-          <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">📘 生成课程总结</button>
-          <button className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600">📝 生成测试题</button>
+          <button
+            className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+            onClick={generateSummary}
+          >
+            📘 生成课程总结
+          </button>
+          <button
+            className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600"
+            onClick={generateQuiz}
+          >
+            📝 生成测试题
+          </button>
+        </div>
+        <div className="mt-4 bg-gray-100 rounded p-4">
+          {aiLoading ? (
+            "⏳ 正在生成..."
+          ) : aiResult ? (
+            aiResultType === "summary" ? (
+              <pre className="whitespace-pre-wrap">{aiResult}</pre>
+            ) : aiResultType === "quiz" ? (
+              <div>
+                {aiResult.map((quiz: any, idx: number) => (
+                  <div key={idx} className="mb-4">
+                    <strong>{idx + 1}. {quiz.question}</strong>
+                    {quiz.options && quiz.options.map((opt: string, i: number) => (
+                      <p key={i}>{opt}</p>
+                    ))}
+                    <p className="text-green-600">答案: {quiz.answer}</p>
+                    <p className="text-gray-600">解析: {quiz.explanation}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null
+          ) : null}
         </div>
       </div>
       {/* 交流评论区 */}

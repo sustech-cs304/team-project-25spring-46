@@ -5,7 +5,7 @@ import CalendarPage from "./pages/CalendarPage";
 import FilePage from "./pages/FilePage";
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState("CoursePage");
+  const [currentPage, setCurrentPage] = useState("HomePage");
   const [selectedFile, setSelectedFile] = useState("");
 
   const renderPage = () => {
