@@ -4,8 +4,8 @@ import pdf from 'pdf-parse';
 import axios from 'axios';
 import pool from './database';
 import path from 'path';
+import apiKey from './apikey';
 
-const apiKey = 'sk-P7BLm3ijoBfAONHc3zMpxtAX0gveozSPefHPCryRVUBmX1kj';
 const endpoint = 'https://api5.xhub.chat/v1/chat/completions';
 
 async function extractPDFText(filePath: string): Promise<string> {
