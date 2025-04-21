@@ -16,3 +16,4 @@
 9. 在根目录下运行npm run compile
 10. Run and Debug the extension 
 11. Control+Shift+p 选择Open Webview即可打开主界面
+12. 若要运行AI模块，请打开AISummarizer模块并替换您自己的APIkey
