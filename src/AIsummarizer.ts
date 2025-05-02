@@ -47,6 +47,6 @@ async function getAbsolutePath(relativePath: string): Promise<string> {
   const [courseName, subfolder, ...filenameParts] = relativePath.split('/');
   const filename = filenameParts.join('/');
   const res = await pool.query("SELECT folder_path FROM courses WHERE name=$1", [courseName]);
-  if (!res.rows[0]) throw new Error('课程未找到');
+  if (!res.rows[0]) {throw new Error('课程未找到');}
   return path.join(res.rows[0].folder_path, subfolder, filename);
 }
