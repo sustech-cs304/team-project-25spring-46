@@ -18,6 +18,18 @@
       {
         "command": "test-combine.openWebview",
         "title": "Open Webview"
+      },
+      {
+        "command": "commentTester.testAdd",
+        "title": "测试添加评论"
+      },
+      {
+        "command": "commentTester.testFetch",
+        "title": "测试获取评论"
+      },
+      {
+        "command": "commentTester.testDelete",
+        "title": "测试删除评论"
       }
     ]
   },
@@ -30,10 +42,13 @@
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
     "@types/mocha": "^10.0.10",
-    "@types/node": "20.x",
+    "@types/node": "^20.17.32",
     "@types/pdf-parse": "^1.1.5",
-    "@types/pg": "^8.11.12",
+    "@types/pg": "^8.11.14",
     "@types/vscode": "^1.99.0",
     "@typescript-eslint/eslint-plugin": "^8.25.0",
     "@typescript-eslint/parser": "^8.25.0",
@@ -46,8 +61,16 @@
   },
   "dependencies": {
     "axios": "^1.8.4",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "pdf-parse": "^1.1.1",
+    "pdf2image": "^1.2.3",
     "pdfjs-dist": "^5.2.133",
-    "pg": "^8.14.1"
+    "pg": "^8.15.6",
+    "pg-protocol": "^1.9.5",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^15.6.1",
+    "remark-gfm": "^4.0.1"
   }
 }

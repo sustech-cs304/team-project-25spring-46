@@ -17,3 +17,5 @@
 10. Run and Debug the extension 
 11. Control+Shift+p 选择Open Webview即可打开主界面
 12. 若要运行AI模块，请打开AISummarizer模块并替换您自己的APIkey
+13. 若要运行评论的server：运行"npm install -g ts-node"安装模块，在serverDatabase中更改server的数据库连接，然后"ts-node src/server.ts"运行server（可在commentService.ts中更改Server_IP和Port）
+14. Control+Shift+p 可选择 测试增添/获取/删除评论

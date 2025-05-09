@@ -5,24 +5,21 @@ import re
 # 返回是否为代码块，如果是则返回代码片段(list[str])
 def extract_code_blocks(text, lang):
     Expression = {
-        'Common': [
+        'C': [
+            r'#include.*?(?=^\s*(?:int|void|float|double|char|class)\s+\w+\s*\(|\Z)',  #include
             r'if\s*\(.*?\)\s*\{.*?\}(?=\s*(?:else|\w|#))',  # if/else
             r'for\s*\([^)]*\)\s*\{.*?\}(?=\s*\w)',  # for
-            r'while\s*\([^)]*\)\s*\{.*?\}(?=\s*\w)'  # while
-        ],
-        'Preprocess': [
-            r'#include.*?(?=^\s*(?:int|void|float|double|char|class)\s+\w+\s*\(|\Z)'  #include
-            # r'^\s*#(?:include|define|ifdef)\s+[<"][^>"]+[>"]',  # include头文件
-            # r'using\s+namespace\s+\w+\s*;',  # using namespace
-        ],
-        'C': [
+            r'while\s*\([^)]*\)\s*\{.*?\}(?=\s*\w)',  # while
             r'(?m)\*\w+\s*=\s*\w+;|&\w+\s*=\s*\w+;',  # 指针
             r'\b(?:int|void|char|float|double)\s+\w+\s*\([^)]*\)\s*\{.*?\}(?=\s*(?:\w|#|\Z))',  # 带返回值的函数
             r'void\s+\w+\s*\(.*?\)\s*\{[\s\S]+?\}(?=\n\w)',  # void类函数
             r'int\s+main\s*\([^)]*\)\s*\{.*?\}(?=\s*(?:\w|#|\Z))'  # main函数
         ],
         'C++': [
-
+            r'#include.*?(?=^\s*(?:int|void|float|double|char|class)\s+\w+\s*\(|\Z)',  #include
+            r'if\s*\(.*?\)\s*\{.*?\}(?=\s*(?:else|\w|#))',  # if/else
+            r'for\s*\([^)]*\)\s*\{.*?\}(?=\s*\w)',  # for
+            r'while\s*\([^)]*\)\s*\{.*?\}(?=\s*\w)',  # while
             r'(?m)\*\w+\s*=\s*\w+;|&\w+\s*=\s*\w+;',  # 指针
             r'\b(?:[\w\s]+\b)+?\s+\w+\s*\(.*?\)\s*\{[\s\S]+?\}(?=\n\w)',  # 带返回值的函数
             r'void\s+\w+\s*\(.*?\)\s*\{[\s\S]+?\}(?=\n\w)',  # void类函数
@@ -31,26 +28,32 @@ def extract_code_blocks(text, lang):
             r'int\s+main\s*\([^)]*\)\s*\{[\s\S]+?\}(?=\s*(?:\w|#|\Z))'  # main函数
         ],
         'Java': [
+            r'if\s*\(.*?\)\s*\{.*?\}(?=\s*(?:else|\w|#))',  # if/else
+            r'for\s*\([^)]*\)\s*\{.*?\}(?=\s*\w)',  # for
+            r'while\s*\([^)]*\)\s*\{.*?\}(?=\s*\w)',  # while
             r'(public\s+)?class\s+\w+\s*\{[\s\S]+?\}',  # 类定义
             r'public\s+(?:static\s+)?[\w<>]+\s+\w+\s*\([^)]*\)\s*\{[\s\S]+?\}',  # 方法定义
             r'@\w+(?:\([^)]*\))?'  # 重载等
         ],
         'Python': [
+            r'if\s*\(.*?\)\s*\{.*?\}(?=\s*(?:else|\w|#))',  # if/else
+            r'for\s*\([^)]*\)\s*\{.*?\}(?=\s*\w)',  # for
+            r'while\s*\([^)]*\)\s*\{.*?\}(?=\s*\w)',  # while
             r'def\s+\w+\s*\([^)]*\)\s*:[\s\S]+?(?=\n\s*(?:def|class)|\Z)',  # 函数定义
             r'class\s+\w+[\s\S]+?(?=\n\s*(?:def|class)|\Z)',  # class定义
             r'\[\s*\w+\s+for\s+\w+\s+in\s+\w+(?:\s+if\s+\w+)?\s*\]',  # 列表推导式
             r'@\w+\s*[\s\S]+?def\s+\w+'  # 装饰器
         ]
     }
-    code_block = []
-    for express in Expression['Common']:
-        code_block.extend(re.findall(express, text, re.DOTALL))
-    for express in Expression['Preprocess']:
-        code_block.extend(re.findall(express, text, re.DOTALL | re.MULTILINE))
-    for express in Expression[lang]:
-        code_block.extend(re.findall(express, text, re.DOTALL))
-    print(code_block)
-    return code_block
+    code_block_pos = []
+    for express in Expression.get(lang, []):
+        for match in re.finditer(express, text, re.DOTALL):
+            code_block_pos.append({
+                'code': match.group(),  # 匹配到的代码块
+                'start': match.start(),  # 起始位置
+                'end': match.end()       # 结束位置
+            })
+    return code_block_pos
 
 
 def checkcode(text):
