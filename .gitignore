@@ -3,3 +3,4 @@ out/
 vite_test/node_modules
 __pycache__
 src/apikey.ts
+src/database.ts
