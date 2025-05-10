@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, createContext, useContext } from "react";
 import * as pdfjs from "pdfjs-dist";
 import { GlobalWorkerOptions, PDFDocumentProxy } from "pdfjs-dist";
-GlobalWorkerOptions.workerSrc = "/assets/pdf.worker.min.js";
+GlobalWorkerOptions.workerSrc = "/dist/assets/pdf.worker.min.js";
 
 type PageMetrics = {
   width: number;

@@ -1,5 +1,5 @@
 // src/pages/DemoPage.tsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { SidePanelProvider, useSidePanel } from './SidePanelContext';
 import PDFViewer from './PDFViewer';
 import CommentOverlay from './CommentOverlay';
@@ -7,8 +7,7 @@ import CodeAnnotation from './CodeAnnotation';
 import SidePanelContainer from './SidePanelContainer';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { CommentData, CodeSnippetData } from '../types/annotations';
-
-const samplePdfPath = '/assets/sample.pdf';
+import { getVsCodeApi } from '../vscodeApi';
 
 const dummyComments: CommentData[] = [
   { id: 'c1', page: 1, type: 'text', content: '第一页顶部评论。', author: '张三', time: '2025-05-06', position: { x: 0.5, y: 0.5 } },
@@ -25,9 +24,32 @@ const PageLayout: React.FC = () => {
   const leftSize = hasCodePanel ? 60 : 70;
   const rightSize = 100 - leftSize;
 
+  const vscode = getVsCodeApi();
+  const [FilePath, setFilePath] = useState('');
+  // const [PdfWorkerPath, setPdfWorkerPath] = useState('');
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data;
+      if (message.command === 'getDemoPdfPath') {
+        setFilePath(message.filePath);
+      }
+      // if (message.command === 'getPdfWorkerPath') {
+      //   setPdfWorkerPath(message.PdfWorkerPath);
+      // }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    vscode.postMessage({ command: "getDemoPdfPath" });
+    // vscode.postMessage({ command: "getPdfWorkerPath" });
+
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   if (openPanels.length === 0) {
     return (
-      <PDFViewer pdfUrl={samplePdfPath}>
+      <PDFViewer pdfUrl={FilePath}>
         <CommentOverlay data={dummyComments} />
         <CodeAnnotation data={dummyCodeBlocks} />
       </PDFViewer>
@@ -37,7 +59,7 @@ const PageLayout: React.FC = () => {
   return (
     <PanelGroup direction="horizontal">
       <Panel defaultSize={leftSize}>
-        <PDFViewer pdfUrl={samplePdfPath}>
+        <PDFViewer pdfUrl={FilePath}>
           <CommentOverlay data={dummyComments} />
           <CodeAnnotation data={dummyCodeBlocks} />
         </PDFViewer>

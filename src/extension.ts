@@ -8,6 +8,7 @@ import { exec } from 'child_process';
 import pool from './database';
 import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 import { activate as activateTestCommands } from './test/testComment';
+let currentUserId: number | null = null;
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -159,6 +160,108 @@ export function activate(context: vscode.ExtensionContext) {
 				} catch (error: any) {
 					panel.webview.postMessage({ command: 'aiError', error: error.message });
 				}
+				break;
+				case 'getDemoPdfPath':
+				try {
+					const demoPdfPath = path.join(context.extensionPath, 'dist', 'assets', 'sample.pdf');
+					panel.webview.postMessage({ command: 'demoPdfPath', filePath: demoPdfPath });
+				} catch (error: any) {
+					panel.webview.postMessage({ command: 'error', error: error.message });
+				}
+				break;
+				case 'getPdfWorkerPath':
+					try {
+						const PdfWorkerPath = path.join(context.extensionPath, 'dist', 'assets', 'pdf.worker.min.js');
+						panel.webview.postMessage({ command: 'PdfWorkerPath', path: PdfWorkerPath });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'error', error: error.message });
+					}
+					break;
+			case 'login':
+				try {
+					const { email } = message;
+					const res = await pool.query(
+					'SELECT id, name, email, role FROM users WHERE email = $1',
+					[email]
+					);
+					if (res.rows.length === 0) {
+					// 用户不存在，报错
+					panel.webview.postMessage({
+						command: 'loginResult',
+						success: false,
+						error: '用户不存在，请先注册'
+					});
+					} else {
+					const userRecord = res.rows[0];
+					currentUserId = userRecord.id;
+					panel.webview.postMessage({
+						command: 'loginResult',
+						success: true,
+						user: userRecord
+					});
+					}
+				} catch (err: any) {
+					panel.webview.postMessage({
+					command: 'loginResult',
+					success: false,
+					error: err.message
+					});
+				}
+				break;
+		
+				// —— 注册（只在此处插入新用户） ——
+				case 'register':
+				try {
+					const { name, email } = message;
+					// 先检查邮箱是否已被注册
+					const exist = await pool.query(
+					'SELECT id FROM users WHERE email = $1',
+					[email]
+					);
+					if (exist.rows.length > 0) {
+					panel.webview.postMessage({
+						command: 'registerResult',
+						success: false,
+						error: '该邮箱已被注册'
+					});
+					} else {
+					const insert = await pool.query(
+						'INSERT INTO users(name, email, role) VALUES($1,$2,$3) RETURNING id, name, email, role',
+						[name, email, 'student']
+					);
+					const newUser = insert.rows[0];
+					currentUserId = newUser.id;
+					panel.webview.postMessage({
+						command: 'registerResult',
+						success: true,
+						user: newUser
+					});
+					}
+				} catch (err: any) {
+					panel.webview.postMessage({
+					command: 'registerResult',
+					success: false,
+					error: err.message
+					});
+				}
+				break;
+		
+				// —— 注销 —— 
+				case 'logout':
+				currentUserId = null;
+				panel.webview.postMessage({
+					command: 'logoutResult',
+					success: true
+				});
+				break;
+		
+				// —— 获取当前登录用户 ID —— 
+				case 'getCurrentUserid':
+				panel.webview.postMessage({
+					command: 'currentUseridResult',
+					success: true,
+					userId: currentUserId
+				});
 				break;
 				default:
 				  vscode.window.showInformationMessage(`未识别的命令: ${message.command}`);
