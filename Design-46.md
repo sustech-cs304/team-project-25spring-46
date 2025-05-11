@@ -10,24 +10,36 @@
 ### 🔧 Architecture Diagram
 
 ```
-+----------------+      VSCode Webview API      +-----------------+
-|                |  <------------------------>  |                 |
-|   Frontend     |                              |     Backend     |
-|                |                              |                 |
-+--------+-------+                              +--------+--------+
-         |                                               |
-         |                                               |
-         v                                               v
-+-------------------+                           +-----------------------+
-| React Components  |                           |   Express / Node.js   |
-| (Pages, API Hook) |                           |   (extension.ts,      |
-| App.tsx           |                           | courseService.ts, etc)|
-+-------------------+                           +-----------------------+
-         |
-         v
-+----------------------------+
-|  Vite, Tailwind, TypeScript|
-+----------------------------+
++----------------+           WebView API / HTTP           +-----------------+
+|                |  <---------------------------------->  |                 |
+|   Frontend     |                                        |     Backend     |
+|  (vite_test)   |                                        | (test-combine)  |
+|                |                                        |                 |
++--------+-------+                                        +--------+--------+
+         |                                                         |
+         |                                                         |
+         v                                                         v
++----------------------------+                         +----------------------------+
+| React App (App.tsx)        |                         | VSCode Extension (entry)   |
+| Pages, Components, Hooks   |                         | extension.ts / .js         |
+| vscodeApi.ts (API bridge)  |                         +----------------------------+
++-------------+--------------+                                    |
+              |                                                   |
+              v                                                   v
++-----------------------------+                     +-----------------------------+
+| Tailwind CSS + Vite + TSX   |                     | courseService.ts (业务逻辑) |
++-----------------------------+                     +-----------------------------+
+                                                              |
+                                                              v
+                                             +-----------------------------+
+                                             | database.ts (数据访问层)     |
+                                             +-----------------------------+
+                                                              |
+                                                              v
+                                             +-----------------------------+
+                                             | text_to_code.py, pdf_test.py|
+                                             | (文本分析 & PDF 处理)        |
+                                             +-----------------------------+
 
 ```
 
@@ -41,28 +53,28 @@
 
 前端项目文件结构清晰、组件化开发，主要包含以下模块：
 
-| `src/pages/` | 表示页面的跳转 |
-| --- | --- |
-| `src/components/` | 各个组件的呈现 |
-| `App.tsx` | 程序主要入口 |
-- `src/pages/`：页面级组件，如课程页（`CoursePage.tsx`）、文件页（`FilePage.tsx`）、首页（`HomePage.tsx`）等
-- `src/components/`：小组件，例如课程组件和文件资源组件
-- `App.tsx`：React 应用主入口，负责路由和全局布局
-- `vscodeApi.ts`：封装与 VSCode 扩展 API 的交互接口
-- 使用 Tailwind 实现响应式和快速样式开发
+- **入口组件**为 `App.tsx`，内部使用 React Router 实现多页面路由（如 CoursePage、FilePage）。
+- **组件目录**中包含多个页面模块和可复用组件。
+- `vscodeApi.ts` 封装了前端与 VSCode 插件的交互逻辑（通过 `postMessage` 或 WebView API）。
+- 样式由 `Tailwind CSS` 配置完成，构建工具为 `Vite`，保证开发体验和构建效率。
 
 ### 🛠 后端模块
 
-后端项目采用 TypeScript 开发，并配合 Python 脚本处理特定任务，核心模块如下：
+后端项目采用 TypeScript 开发，并配合 Python 脚本处理特定任务，
 
-| `courseService.ts` | 进行课程管理 |
-| --- | --- |
-| `database.ts` | 建立数据库 |
-| `extension.ts` | 处理相关的拓展 |
-- `courseService.ts`：处理与课程相关的业务逻辑
-- `database.ts`：封装数据库操作接口（可扩展为 MongoDB / SQLite / PostgreSQL）
-- `extension.ts`：处理 VSCode 扩展逻辑
-- `text_to_code.py`、`pdf_test.py`：Python 脚本用于文本转代码、PDF 解析等功能
+实际运行在 VSCode 插件环境中，主要逻辑包括：
+
+- `extension.ts / extension.js` 是插件的**主入口**，监听前端发来的事件并进行分发处理。
+- `courseService.ts` 封装了业务逻辑，例如课程数据管理、与数据库或模型交互等。
+- `database.ts` 负责与数据存储层交互（可接入本地文件或轻量数据库）。
+- `text_to_code.py` 与 `pdf_test.py` 是 Python 实现的工具模块，负责处理结构化文本、文档抽取或代码生成等高级任务。
+
+### 🔗 通信方式
+
+前端通过 `vscodeApi.ts` 发送消息给插件主进程（`extension.ts`），后端解析后调用对应服务逻辑，并返回结果给前端。通信方式可为：
+
+- `window.postMessage` + `vscode.postMessage`（WebView API）
+- JSON 格式数据传递（例如请求类型、参数、响应数据）
 
 ### 🛠 数据库设计
 
