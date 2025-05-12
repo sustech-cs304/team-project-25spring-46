@@ -37,6 +37,15 @@ export function activate(context: vscode.ExtensionContext) {
 			  ]
 			}
 		);
+		const webview = panel.webview;
+		const cspSource = webview.cspSource;
+		// 用 asWebviewUri 生成两个资源的可访问 URI
+		const demoPdfUri = webview.asWebviewUri(
+			vscode.Uri.file(path.join(context.extensionPath, 'dist', 'assets', 'sample.pdf'))
+		);
+		const workerUri = webview.asWebviewUri(
+			vscode.Uri.file(path.join(context.extensionPath, 'dist', 'assets', 'pdf.worker.min.js'))
+		);
 		// 获取 index.html 路径
 		const indexHtmlPath = path.join(context.extensionPath, 'dist', 'index.html');
 		let htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
@@ -53,9 +62,24 @@ export function activate(context: vscode.ExtensionContext) {
 		htmlContent = htmlContent.replace(/href="\/vite\.svg"/g, `href="${viteSvgUri.toString()}"`);
   
 		// 插入内容安全策略（CSP）meta标签，确保允许加载需要的脚本和样式
-		const cspMetaTag = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' vscode-resource:; style-src vscode-resource: 'unsafe-inline';">`;
+		const cspMetaTag = `<meta http-equiv="Content-Security-Policy" content="
+			default-src 'none';
+			img-src ${cspSource} https:;
+			script-src ${cspSource} 'unsafe-inline';
+			style-src ${cspSource} 'unsafe-inline';
+			connect-src ${cspSource} blob:;
+			worker-src ${cspSource} blob:;
+		">`;
 		htmlContent = htmlContent.replace(/<head>/, `<head>\n  ${cspMetaTag}\n`);
-  
+		htmlContent = htmlContent.replace(
+			/<body>/,
+			`<body>
+			  <script>
+				window.__PDF_DOC__ = "${demoPdfUri}";
+				window.__PDF_WORKER__ = "${workerUri}";
+			  </script>`
+		  );
+		  
 		// 将处理后的 HTML 设置给 Webview
 		panel.webview.html = htmlContent;
 
@@ -163,16 +187,20 @@ export function activate(context: vscode.ExtensionContext) {
 				break;
 				case 'getDemoPdfPath':
 				try {
-					const demoPdfPath = path.join(context.extensionPath, 'dist', 'assets', 'sample.pdf');
-					panel.webview.postMessage({ command: 'demoPdfPath', filePath: demoPdfPath });
+					// const demoPdfPath = path.join(context.extensionPath, 'dist', 'assets', 'sample.pdf');
+					const demoPdfPath = vscode.Uri.joinPath(context.extensionUri, 'dist', 'assets', 'sample.pdf');
+					const demoPdfUri = panel.webview.asWebviewUri(demoPdfPath);
+					panel.webview.postMessage({ command: 'demoPdfPath', filePath: demoPdfUri.toString() });
 				} catch (error: any) {
 					panel.webview.postMessage({ command: 'error', error: error.message });
 				}
 				break;
 				case 'getPdfWorkerPath':
 					try {
-						const PdfWorkerPath = path.join(context.extensionPath, 'dist', 'assets', 'pdf.worker.min.js');
-						panel.webview.postMessage({ command: 'PdfWorkerPath', path: PdfWorkerPath });
+						// const PdfWorkerPath = path.join(context.extensionPath, 'dist', 'assets', 'pdf.worker.min.js');
+						const PdfWorkerPath = vscode.Uri.joinPath(context.extensionUri, 'dist', 'assets', 'pdf.worker.min.js');
+						const PdfWorkerUri = panel.webview.asWebviewUri(PdfWorkerPath);
+						panel.webview.postMessage({ command: 'PdfWorkerPath', path: PdfWorkerUri.path });
 					} catch (error: any) {
 						panel.webview.postMessage({ command: 'error', error: error.message });
 					}
@@ -265,6 +293,7 @@ export function activate(context: vscode.ExtensionContext) {
 				break;
 				default:
 				  vscode.window.showInformationMessage(`未识别的命令: ${message.command}`);
+				  console.log(`未识别的命令: ${message.command}`);	
 				  break;
 			  }
 			},

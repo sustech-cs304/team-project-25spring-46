@@ -10,12 +10,12 @@ interface FilePageProps {
   codeSnippets: CodeSnippetData[];
 }
 
-const FilePage: React.FC<FilePageProps> = ({ filePath, comments, codeSnippets }) => {
+const FilePage: React.FC<FilePageProps> = ({ comments, codeSnippets }) => {
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
   return (
     <div className="w-full h-full relative">
-      <PDFViewer pdfUrl={filePath}>
+      <PDFViewer>
         <CommentOverlay data={comments} />
         <CodeAnnotation data={codeSnippets} />
       </PDFViewer>
