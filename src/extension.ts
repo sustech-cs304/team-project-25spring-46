@@ -118,9 +118,9 @@ export function activate(context: vscode.ExtensionContext) {
 					const absolutePath = path.join(coursePath, subfolder, filename);
 					const scriptPath = path.join(context.extensionPath, 'src', 'pdf_test.py');
 					const outPath = path.join(context.extensionPath, 'cr_out');
-					const pythonPath = "C:\\ProgramData\\miniconda3\\python.exe";
+					const pythonPath = "python";
 					console.log("executing python script with filePath: ", absolutePath, scriptPath, outPath);
-					exec(`"${pythonPath}" "${scriptPath}" "${absolutePath}" "${outPath}"`, (error, stdout, stderr) => {
+					exec(`"${pythonPath} " "${scriptPath} " "${absolutePath} " "${outPath}"`, (error, stdout, stderr) => {
 					if (error) {
 						panel.webview.postMessage({ command: 'error', error: error.message });
 						return;
@@ -143,7 +143,25 @@ export function activate(context: vscode.ExtensionContext) {
 				} catch (err: any) {
 					panel.webview.postMessage({ command: 'error', error: err.message });
 				}
-				break;
+					break;
+				case 'openFile': 
+				try{
+					const filePath = message.filePath;
+                    vscode.window.showInformationMessage(`打开 PDF 文件: ${filePath}`);
+                    try {
+						const jsonFilePath = path.join(context.extensionPath, 'cr_out') + "\\" + path.parse(filePath).name + "_code_block.json";
+                        const jsonContent = await vscode.workspace.fs.readFile(vscode.Uri.file(jsonFilePath));
+                        const jsonString = Buffer.from(jsonContent).toString('utf-8');
+                        vscode.window.showInformationMessage(`JSON 文件内容: ${jsonString}`);
+						panel.webview.postMessage({command: 'pdfCodeBlocks', data: jsonString});
+                    } catch (error) {
+                        vscode.window.showErrorMessage(`无法读取 JSON 文件: ${error}`);
+                    }
+				}
+				catch(err: any) {
+					panel.webview.postMessage({command: 'error', error: err.message});
+				}
+					break;
 				case 'generateSummary':
 					try {
 						const summary = await generateAISummary(message.filePath);
