@@ -1,5 +1,5 @@
 // import * as crypto from 'crypto';
-import * as vscode from 'vscode';
+// import * as vscode from 'vscode';
 import axios from 'axios';
 // import { CommentData } from '../vite_test/src/types/annotations';
 
