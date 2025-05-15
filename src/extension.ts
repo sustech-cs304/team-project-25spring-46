@@ -1,3 +1,4 @@
+// extension.ts
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
@@ -8,6 +9,8 @@ import { exec } from 'child_process';
 import pool from './database';
 import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 import { activate as activateTestCommands } from './test/testComment';
+import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask} from './taskService';
+import { getProjects } from './projectService';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -80,12 +83,81 @@ export function activate(context: vscode.ExtensionContext) {
 						panel.webview.postMessage({ command: 'createCourseResult', success: false, error: error.message });
 					}
 					break;
+				case 'createTask':
+					try {
+						console.log("Extension - createTask message.data:", message.data); // 添加日志
+						const { title, details, due_date, priority,status, course_id, project_id} = message.data; // 确保 status 被接收
+						const result = await createNewTask({
+						title,
+						details,
+						due_date,
+						priority,
+						status,
+						course_id,
+						project_id,
+						assignee_id: 1, // 假设当前用户 ID 为 1
+						});
+						panel.webview.postMessage({ command: 'createTaskResult', success: true, data: result });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'createTaskResult', success: false, error: error.message });
+					}
+					break;
 				case 'getCourses':
 					try {
 						const courses = await getCourses();
 						panel.webview.postMessage({ command: 'coursesData', courses });
 					} catch (error: any) {
 						panel.webview.postMessage({ command: 'getCoursesResult', success: false, error: error.message });
+					}
+					break;
+				case 'getMyTasks' :
+					try {
+						const tasks = await getMyTasks(1); // 暂时写死用户 ID 为 1
+    					panel.webview.postMessage({ command: 'getMyTasks', tasks });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'error', error: error.message });
+					}
+					break;
+				case 'getProjectTasks' :
+					try {
+						const projectId = 1;
+						const tasks = await getProjectTasks(projectId);
+    					panel.webview.postMessage({ command: 'projectTasksData', tasks });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'error', error: error.message });
+					}
+					break;
+				case 'updateTask':
+					try {
+						console.log("Extension - updateTask message.data:", message.data); // 添加日志
+						const { id, title, details, due_date, status, priority, course_id, project_id } = message.data;
+						await updateTask({
+						id,
+						title,
+						details,
+						due_date,
+						status,
+						priority,
+						course_id,
+						project_id,
+						});
+						panel.webview.postMessage({ command: 'updateTaskResult', success: true, taskId: id });
+					} catch (error: any) {
+						console.error("Extension - updateTask error:", error); // 添加日志
+						panel.webview.postMessage({ command: 'updateTaskResult', success: false, error: error.message });
+					}
+					break;
+				case 'deleteTask':
+					try {
+						const taskId = message.taskId;
+						if (!taskId) {
+						panel.webview.postMessage({ command: 'error', error: '未提供任务 ID' });
+						return;
+						}
+						await deleteTask(taskId);
+						panel.webview.postMessage({ command: 'deleteTaskResult', success: true, taskId });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'deleteTaskResult', success: false, error: error.message });
 					}
 					break;
 				case 'getCourseFiles':
@@ -96,6 +168,7 @@ export function activate(context: vscode.ExtensionContext) {
 						panel.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
+				
 				case 'getFileDetails':
 					try {
 						const details = await getFileDetails(message.filePath);
@@ -163,7 +236,15 @@ export function activate(context: vscode.ExtensionContext) {
 				default:
 				  vscode.window.showInformationMessage(`未识别的命令: ${message.command}`);
 				  break;
-			  }
+				case 'getProjects': // 添加 getProjects 命令处理
+				try {
+				const projects = await getProjects();
+				panel.webview.postMessage({ command: 'projectsData', projects });
+				} catch (error: any) {
+				panel.webview.postMessage({ command: 'error', error: error.message });
+				}
+				break;
+				}
 			},
 			undefined,
 			context.subscriptions
