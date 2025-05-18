@@ -13,7 +13,12 @@ interface FileDetails {
     subfolder: string;
 }
 
-export default function FilePage({filePath}: { filePath: string }) {
+interface FilePageProps {
+    filePath: string;
+    onView: () => void;    // 新增
+}
+
+export default function FilePage({ filePath, onView }: FilePageProps) {
     console.log("Now loading FilePath:", filePath);
     const vscode = getVsCodeApi();
     const files = ["Lecture1.pdf", "Lecture2.pdf", "Lecture3.pdf"];
@@ -72,7 +77,10 @@ export default function FilePage({filePath}: { filePath: string }) {
             <div className="flex justify-center">
                 <button
                     className="bg-blue-600 text-white px-6 py-2 rounded-xl text-lg hover:bg-blue-700"
-                    onClick={() => vscode.postMessage({ command: 'openFile', filePath })}
+                    onClick={() => {
+                        // 跳转到真正的 DisplayPage
+                        onView();
+                      }}
                 >
                     🔍 查看文件
                 </button>

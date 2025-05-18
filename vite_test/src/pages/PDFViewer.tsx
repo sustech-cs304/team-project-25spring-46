@@ -1,11 +1,5 @@
 // src/pages/PDFViewer.tsx
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  createContext,
-  useContext,
-} from "react";
+import React, { useState, useEffect, useRef, createContext, useContext } from "react";
 import * as pdfjs from "pdfjs-dist";
 import { PDFDocumentProxy } from "pdfjs-dist";
 import { getVsCodeApi } from "../vscodeApi";
@@ -23,54 +17,57 @@ interface PDFContextValue {
 const PDFContext = createContext<PDFContextValue | null>(null);
 
 interface PDFViewerProps {
-  // 这个 prop 已经不需要了，因为我们从消息里拿 filePath
-  // pdfUrl: string;
+  filePath: string;
   children?: React.ReactNode;
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ children }) => {
-  const [filePath, setFilePath] = useState<string | null>(null);
+const PDFViewer: React.FC<PDFViewerProps> = ({ filePath, children }) => {
   const [workerPath, setWorkerPath] = useState<string | null>(null);
+  const [pdfPath, setPdfPath] = useState<string>('');
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
   const [pageMetrics, setPageMetrics] = useState<PageMetrics[]>([]);
   const canvasRefs = useRef<HTMLCanvasElement[]>([]);
   const vscode = getVsCodeApi();
 
-  // ——— 1. 请求并接收 PDF 与 Worker 路径 ———
+  // ——— 1. 请求并接收 Worker 路径 ———
   useEffect(() => {
+    console.log("Now Loading PDFViewer: filePath:", filePath);
     const handleMessage = (event: MessageEvent) => {
       const msg = event.data;
-      if (msg.command === "demoPdfPath") {
-        setFilePath(msg.filePath);
-      }
       if (msg.command === "PdfWorkerPath") {
         setWorkerPath(msg.path);
       }
+      if (msg.command === "PdfPath") {
+        setPdfPath(msg.path);
+      }
     };
     window.addEventListener("message", handleMessage);
-    vscode.postMessage({ command: "getDemoPdfPath" });
-    vscode.postMessage({ command: "getPdfWorkerPath" });
+    vscode?.postMessage({ command: "getPdfWorkerPath" });
+    vscode?.postMessage({ command: "getPdfPath", path: filePath });
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  }, [vscode, filePath]);
 
-  // ——— 2. 拿到两条路径后，设置 worker 并加载 PDF ———
+  // ——— 2. 拿到 workerPath 后，加载 PDF ———
   useEffect(() => {
-    if (!filePath || !workerPath) return;
+    console.log("Now pdf path:", pdfPath, "worker path:", workerPath);
+    if (!pdfPath || !workerPath) return;
     pdfjs.GlobalWorkerOptions.workerSrc = workerPath;
 
     let cancelled = false;
     (async () => {
       try {
-        const loadingTask = pdfjs.getDocument(filePath);
+        const loadingTask = pdfjs.getDocument({
+          url: pdfPath,
+          disableRange: true,
+        });
         const pdf = await loadingTask.promise;
         if (cancelled) return;
         setPdfDoc(pdf);
-    
-        // 正确计算每页的宽高和 offsetY
+
         const metrics: PageMetrics[] = [];
         let cumulativeOffset = 0;
         const scale = 1.0;
-    
+
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const viewport = page.getViewport({ scale });
@@ -81,17 +78,17 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ children }) => {
           });
           cumulativeOffset += viewport.height + 10;
         }
-    
+
         if (!cancelled) {
           setPageMetrics(metrics);
         }
-    
       } catch (err) {
         console.error("PDF 加载失败:", err);
       }
     })();
+
     return () => { cancelled = true; };
-  }, [filePath, workerPath]);
+  }, [pdfPath, workerPath]);
 
   // ——— 3. PDFDocumentProxy 就绪后，渲染到 canvas ———
   useEffect(() => {

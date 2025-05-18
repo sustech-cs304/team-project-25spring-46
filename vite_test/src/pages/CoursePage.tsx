@@ -81,7 +81,11 @@ export default function CoursePage({ setSelectedFile }: { setSelectedFile: (file
             count={files[index].length}
             files={files[index]}
             // onFileClick={(fileName) => setSelectedFile(`${currentCourse}/${sub}/${fileName}`)}
-            onFileClick={(fileName) => setSelectedFile(`${currentCourse}/${sub}/${fileName}`)}
+            onFileClick={(fileName) => {
+              const path = `${currentCourse}/${sub}/${fileName}`;
+              setSelectedFile(path);         // 通知 App 选了哪一个
+              // App 会自动把 currentPage 切到 FilePage
+            }}
           />
         ))}
       </div>

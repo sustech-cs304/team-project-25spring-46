@@ -107,3 +107,23 @@ export async function getFileDetails(fullFilePath: string) {
     throw new Error(`获取文件详情失败: ${error}`);
   }
 }
+
+export async function getFileAbsolutePath(fullFilePath: string) {
+  console.log("now checking file stats: ", fullFilePath);
+  // fullFilePath = path.join(context.extensionPath, fullFilePath);
+  const parts = fullFilePath.split("/");
+  const courseName = parts[0];
+  const subfolder = parts[1];
+  const filename = parts.slice(2).join("/");
+  try {
+    const res = await pool.query("SELECT folder_path FROM courses WHERE name = $1", [courseName]);
+    console.log("数据库返回结果:", res.rows);
+    const coursePath = res.rows[0].folder_path;
+    const absolutePath = path.join(coursePath, subfolder, filename);
+    return absolutePath;
+  }
+  catch (error) {
+    console.error("获取文件详情失败: ", error);
+    throw new Error(`获取文件详情失败: ${error}`);
+  }
+}

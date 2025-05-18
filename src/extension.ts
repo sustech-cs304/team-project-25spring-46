@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { createNewCourse, getCourses, getCourseSubfolderFiles, getFileDetails} from './courseService';
+import { createNewCourse, getCourses, getCourseSubfolderFiles, getFileDetails, getFileAbsolutePath} from './courseService';
 import { exec } from 'child_process';
 import pool from './database';
 import { generateAISummary, generateAIQuiz } from './AIsummarizer';
@@ -35,7 +35,8 @@ export function activate(context: vscode.ExtensionContext) {
 			{
 			  enableScripts: true,
 			  localResourceRoots: [
-				vscode.Uri.file(path.join(context.extensionPath, 'dist'))
+				vscode.Uri.file(path.join(context.extensionPath, 'dist')),
+				vscode.Uri.file('C:/')
 			  ]
 			}
 		);
@@ -276,23 +277,34 @@ export function activate(context: vscode.ExtensionContext) {
 					break;
 			
 				case 'generateQuiz':
-				try {
-					const quiz = await generateAIQuiz(message.filePath);
-					panel.webview.postMessage({ command: 'aiQuizResult', content: quiz });
-				} catch (error: any) {
-					panel.webview.postMessage({ command: 'aiError', error: error.message });
-				}
-				break;
+					try {
+						const quiz = await generateAIQuiz(message.filePath);
+						panel.webview.postMessage({ command: 'aiQuizResult', content: quiz });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'aiError', error: error.message });
+					}
+					break;
+				case 'getPdfPath':
+					try {
+						const absolutePath = await getFileAbsolutePath(message.path);
+						const pdfPath = vscode.Uri.file(absolutePath);
+						const pdfUri = panel.webview.asWebviewUri(pdfPath);
+						panel.webview.postMessage({ command: 'PdfPath', path: pdfUri.toString() });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'error', error: error.message });
+					}
+					break;
+
 				case 'getDemoPdfPath':
-				try {
-					// const demoPdfPath = path.join(context.extensionPath, 'dist', 'assets', 'sample.pdf');
-					const demoPdfPath = vscode.Uri.joinPath(context.extensionUri, 'dist', 'assets', 'sample.pdf');
-					const demoPdfUri = panel.webview.asWebviewUri(demoPdfPath);
-					panel.webview.postMessage({ command: 'demoPdfPath', filePath: demoPdfUri.toString() });
-				} catch (error: any) {
-					panel.webview.postMessage({ command: 'error', error: error.message });
-				}
-				break;
+					try {
+						// const demoPdfPath = path.join(context.extensionPath, 'dist', 'assets', 'sample.pdf');
+						const demoPdfPath = vscode.Uri.joinPath(context.extensionUri, 'dist', 'assets', 'sample.pdf');
+						const demoPdfUri = panel.webview.asWebviewUri(demoPdfPath);
+						panel.webview.postMessage({ command: 'demoPdfPath', filePath: demoPdfUri.toString() });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'error', error: error.message });
+					}
+					break;
 				case 'getPdfWorkerPath':
 					try {
 						// const PdfWorkerPath = path.join(context.extensionPath, 'dist', 'assets', 'pdf.worker.min.js');

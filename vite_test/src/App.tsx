@@ -6,12 +6,13 @@ import CoursePage from './pages/CoursePage';
 import CalendarPage from './pages/CalendarPage';
 import FilePage from './pages/FilePage';
 import DemoPage from './pages/DemoPage';
+import DisplayPage from './pages/DisplayPage';
 import { getVsCodeApi } from './vscodeApi';
 
 const vscode = getVsCodeApi();
 
 export default function App() {
-  type Page = 'LoginPage' | 'RegisterPage' | 'HomePage' | 'CoursePage' | 'CalendarPage' | 'DemoPage';
+  type Page = 'LoginPage' | 'RegisterPage' | 'HomePage' | 'CoursePage' | 'CalendarPage' | 'DemoPage' | 'DisplayPage' | 'FilePage';
   const [currentPage, setCurrentPage] = useState<Page>('LoginPage');
   const [user, setUser] = useState<UserInfo | null>(null);
   const [selectedFile, setSelectedFile] = useState<string>('');
@@ -58,12 +59,25 @@ export default function App() {
         ? <RegisterPage onRegisterSuccess={handleRegisterSuccess} onSwitchToLogin={() => setCurrentPage('LoginPage')} />
         : <LoginPage onLoginSuccess={handleLoginSuccess} onSwitchToRegister={() => setCurrentPage('RegisterPage')} />;
     }
-    if (selectedFile) {
-      return <FilePage filePath={selectedFile} />;
+    if (currentPage === 'FilePage' && selectedFile) {
+      return <FilePage
+               filePath={selectedFile}
+               onView={() => setCurrentPage('DisplayPage')}
+             />;
+    }
+    if (currentPage === 'DisplayPage' && selectedFile) {
+      return <DisplayPage filePath={selectedFile} />;
     }
     switch (currentPage) {
       case 'HomePage':    return <HomePage />;
-      case 'CoursePage':  return <CoursePage setSelectedFile={setSelectedFile} />;
+      case 'CoursePage': return (
+        <CoursePage
+          setSelectedFile={file => {
+            setSelectedFile(file);
+            setCurrentPage('FilePage');
+          }}
+        />
+      );
       case 'CalendarPage':return <CalendarPage />;
       case 'DemoPage':    return <DemoPage />;
       default:            return <HomePage />;
