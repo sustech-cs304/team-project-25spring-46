@@ -7,7 +7,6 @@ src/apikey.ts
 /.idea/
 /node_modules/
 /vite_test/dist/
-README.md
 design-46.md
 Design-46.md
 src/database.ts
