@@ -83,7 +83,7 @@ export async function getCourseSubfolderFiles(courseName: string): Promise<strin
 }
 
 export async function getFileDetails(fullFilePath: string) {
-  console.log("now checking file stats: ", fullFilePath);
+  console.log("getFileDetails - now checking file stats: ", fullFilePath);
   // fullFilePath = path.join(context.extensionPath, fullFilePath);
   const parts = fullFilePath.split("/");
   const courseName = parts[0];
@@ -109,7 +109,7 @@ export async function getFileDetails(fullFilePath: string) {
 }
 
 export async function getFileAbsolutePath(fullFilePath: string) {
-  console.log("now checking file stats: ", fullFilePath);
+  console.log("getFileAbsolutePath - now checking file stats: ", fullFilePath);
   // fullFilePath = path.join(context.extensionPath, fullFilePath);
   const parts = fullFilePath.split("/");
   const courseName = parts[0];

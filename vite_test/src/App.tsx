@@ -93,7 +93,7 @@ export default function App() {
           <div className="flex gap-2">
             <select
               value={currentPage}
-              onChange={e => setCurrentPage(e.target.value as any)}
+              onChange={e => setCurrentPage(e.target.value as 'HomePage' | 'CoursePage' | 'CalendarPage' | 'DemoPage')}
               className="border p-2 rounded-md bg-white shadow"
             >
               <option value="HomePage">主页</option>

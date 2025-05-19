@@ -3,7 +3,7 @@ import { CommentData, parsePosition, addComment, deleteCommentById, getAllCommen
 
 export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand('commentTester.testAdd', async () => {
-    const filePath = '/Users/alice/test.pdf'; // 改为本地文件路径
+    const filePath = 'Test/讲义/2025-Corporate Finance Lecture 02-Discounted Cash Flow Valuation.pdf';
     await addComment({
       filePath,
       page: 1,
@@ -11,6 +11,15 @@ export function activate(context: vscode.ExtensionContext) {
       x1: 0.3,
       y1: 0.5,
       content: '测试评论1',
+      type: 'text',
+      author: 'Alice'
+    });
+    await addComment({
+      filePath,
+      page: 1,
+      x1: 0.5,
+      y1: 0.3,
+      content: '测试评论2',
       type: 'text',
       author: 'Alice'
     });

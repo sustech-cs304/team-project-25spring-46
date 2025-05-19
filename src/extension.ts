@@ -10,6 +10,8 @@ import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 import { activate as activateTestCommands } from './test/testComment';
 import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask} from './taskService';
 import { getProjects } from './projectService';
+import { getAllComments } from './commentService';
+
 let currentUserId: number | null = null;
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -36,7 +38,11 @@ export function activate(context: vscode.ExtensionContext) {
 			  enableScripts: true,
 			  localResourceRoots: [
 				vscode.Uri.file(path.join(context.extensionPath, 'dist')),
-				vscode.Uri.file('C:/')
+				vscode.Uri.file('C:/'),
+				vscode.Uri.file(path.join(context.extensionPath)),
+				vscode.Uri.file(path.dirname(context.extensionPath)),
+				vscode.Uri.file('D:/'),  // 添加 D 盘路径
+				vscode.Uri.file('d:/')   // 添加小写的 d 盘路径
 			  ]
 			}
 		);
@@ -210,7 +216,19 @@ export function activate(context: vscode.ExtensionContext) {
 						panel.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
-				
+				case 'getAllComments':
+					try {
+						const comments = await getAllComments(message.filePath);
+						panel.webview.postMessage({
+						command: 'getAllCommentsSuccess',
+						comments,
+						});
+					} catch (error) {
+						panel.webview.postMessage({
+						command: 'getAllCommentsError',
+						error: error || String(error),
+						});
+					}
 				case 'runCodeRecognition':
 				try {
 					const parts = message.filePath.split("/");
@@ -287,9 +305,12 @@ export function activate(context: vscode.ExtensionContext) {
 				case 'getPdfPath':
 					try {
 						const absolutePath = await getFileAbsolutePath(message.path);
+						console.log("File's Absolute Path is: "+absolutePath);
 						const pdfPath = vscode.Uri.file(absolutePath);
 						const pdfUri = panel.webview.asWebviewUri(pdfPath);
+						console.log("path: "+pdfUri.toString());
 						panel.webview.postMessage({ command: 'PdfPath', path: pdfUri.toString() });
+						console.log("finish command getPdfPath ----");
 					} catch (error: any) {
 						panel.webview.postMessage({ command: 'error', error: error.message });
 					}
