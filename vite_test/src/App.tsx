@@ -4,6 +4,7 @@ import CoursePage from "./pages/CoursePage";
 import CalendarPage from "./pages/CalendarPage";
 import FilePage from "./pages/FilePage";
 import DemoPage from "./pages/DemoPage";
+import ChatPage from "./pages/ChatPage";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState("HomePage");
@@ -16,6 +17,7 @@ export default function App() {
       case "CoursePage": return <CoursePage setSelectedFile={setSelectedFile} />;
       case "CalendarPage": return <CalendarPage />;
       case "DemoPage": return <DemoPage />;
+      case "ChatPage": return <ChatPage />;
       default: return <HomePage />;
     }
   };
@@ -31,6 +33,7 @@ export default function App() {
         <option value="CoursePage">课程页面</option>
         <option value="CalendarPage">日历页面</option>
         <option value="DemoPage">🧪 Demo 测试</option>
+        <option value="ChatPage">💬 聊天页面</option>
       </select>
       {selectedFile && (
         <button onClick={() => setSelectedFile("")} className="mt-2 p-2 bg-blue-500 text-white rounded">返回课程页面</button>
