@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { pathToFileURL } from 'url';
 import axios from 'axios';
 
-export const Server_IP = '10.32.112.180';
+export const Server_IP = '10.32.97.206';
 export const Port = '3000';
 const API_BASE_URL = `http://${Server_IP}:${Port}`;
 
@@ -39,7 +39,7 @@ export interface NewComment {
     content?: string;
     extra?: Record<string, any>;
     author?: string;
-  }
+}
 
 function generateFileId(filePath: string): string {
     return pathToFileURL(filePath).href;
@@ -113,7 +113,7 @@ export async function getAllComments(filePath: string): Promise<Comment[]> {
     }
 }
 
-export async function getPageComments(filePath: string, page_number:number): Promise<Comment[]> {
+export async function getPageComments(filePath: string, page_number: number): Promise<Comment[]> {
     const file_id = hashFilePath(filePath);
     try {
         const response = await axios.get(`${API_BASE_URL}/comments`, {

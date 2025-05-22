@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import './ChatPage.css';
 
@@ -25,11 +25,19 @@ const ChatPage: React.FC = () => {
   const [chatType, setChatType] = useState<'none' | 'group' | 'friend'>('none'); // Chat type ('none', 'group', or 'friend')
   const [selectedFriend, setSelectedFriend] = useState<string>(''); // Selected friend for friend chat
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]); // Selected members for group chat
-  const [membersList] = useState<string[]>(['Alice', 'Bob', 'Charlie', '我']); // List of possible members (static list)
+  const [membersList, setMembersList] = useState<string[]>(['Alice', 'Bob', 'Charlie', '我']); // List of possible members (static list)
   const [isModalOpen, setIsModalOpen] = useState(false); // Whether the modal is open or not
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false); // Invite members modal
   const [selectedMembersForInvite, setSelectedMembersForInvite] = useState<string[]>([]); // Selected members for invitation
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false); // State for members modal
+  // 修改 useState 部分，移除未使用的 setCurrentUserId
+  const [currentUserId] = useState<string>('1'); // 假设当前用户ID为1，实际应用中应从登录状态获取
+
+    // 数据获取effect
+    useEffect(() => {
+      fetchChats(currentUserId);
+      fetchFriends(currentUserId);
+    }, [currentUserId]);
 
   // Open modal for creating a group chat or adding a friend
   const openModal = (isGroup: boolean) => {
@@ -51,55 +59,152 @@ const ChatPage: React.FC = () => {
     setChatType('none'); // Reset chat type (no modal is open anymore)
   };
 
-  // Send a message to the selected chat
-  const sendMessage = () => {
-    if (newMessage.trim() && selectedChat) { // Check if there's a new message and a selected chat
-      const message = {
-        sender: userName,
-        text: newMessage,
-        time: new Date().toLocaleTimeString().slice(0, 5), // Get the current time in hh:mm format
+  // // Send a message to the selected chat
+  // const sendMessage = () => {
+  //   if (newMessage.trim() && selectedChat) { // Check if there's a new message and a selected chat
+  //     const message = {
+  //       sender: userName,
+  //       text: newMessage,
+  //       time: new Date().toLocaleTimeString().slice(0, 5), // Get the current time in hh:mm format
+  //     };
+  //     selectedChat.messages.push(message); // Add the new message to the selected chat's messages
+  //     setChats([...chats]); // Update the chats list to trigger re-render
+  //     setNewMessage(''); // Clear the message input
+  //   }
+  // };
+  // 发送消息
+// 修改 sendMessage 函数，移除未使用的 sentMessage
+const sendMessage = async () => {
+  if (newMessage.trim() && selectedChat) {
+    try {
+      await fetch('http://10.32.97.206:3000/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatId: selectedChat.id,
+          senderId: currentUserId,
+          content: newMessage
+        }),
+      });
+      
+      // 更新本地状态
+      const updatedChat = {
+        ...selectedChat,
+        messages: [...selectedChat.messages, {
+          sender: userName,
+          text: newMessage,
+          time: new Date().toLocaleTimeString().slice(0, 5)
+        }]
       };
-      selectedChat.messages.push(message); // Add the new message to the selected chat's messages
-      setChats([...chats]); // Update the chats list to trigger re-render
-      setNewMessage(''); // Clear the message input
+      
+      setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
+      setNewMessage('');
+    } catch (error) {
+      console.error('发送消息失败:', error);
     }
-  };
+  }
+};
 
-  // Create a new friend chat
-  const createFriendChat = () => {
-    if (selectedFriend) { // Check if a friend has been selected
-      const newChat: Chat = {
-        id: Math.random().toString(36).substr(2, 9), // Generate a random chat ID
-        name: `${userName} 和 ${selectedFriend}`, // Set chat name based on the user and selected friend
-        messages: [],
-        isGroup: false, // Mark as a non-group chat
-      };
-      setChats([...chats, newChat]); // Add the new chat to the chat list
-      setSelectedChat(newChat); // Set the newly created chat as the selected chat
-      setIsModalOpen(false); // Close the modal
-    }
-  };
 
-  // Create a new group chat
-  const createGroupChat = () => {
-    if (selectedMembers.length > 0) { // Ensure at least one member is selected
-      const newChat: Chat = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: chatName,
-        messages: [],
-        isGroup: true,
-        members: [userName, ...selectedMembers],
-        groupOwner: userName,
-      };
-      setChats([...chats, newChat]); // Add the new group chat to the chat list
-      setChatName(''); // Reset chat name input
-      setSelectedMembers([]); // Reset selected members
-      setIsModalOpen(false); // Close the modal
-      setSelectedChat(newChat); // Set the newly created group chat as the selected chat
-    } else {
-      alert('请至少选择一个成员');
+  // // Create a new friend chat
+  // const createFriendChat = () => {
+  //   if (selectedFriend) { // Check if a friend has been selected
+  //     const newChat: Chat = {
+  //       id: Math.random().toString(36).substr(2, 9), // Generate a random chat ID
+  //       name: `${userName} 和 ${selectedFriend}`, // Set chat name based on the user and selected friend
+  //       messages: [],
+  //       isGroup: false, // Mark as a non-group chat
+  //     };
+  //     setChats([...chats, newChat]); // Add the new chat to the chat list
+  //     setSelectedChat(newChat); // Set the newly created chat as the selected chat
+  //     setIsModalOpen(false); // Close the modal
+  //   }
+  // };
+  // 创建好友聊天
+const createFriendChat = async () => {
+  if (selectedFriend) {
+    try {
+      // 在实际应用中，你需要有一个从用户名到用户ID的映射
+      // 这里简化处理，假设 selectedFriend 是用户名，需要查询对应的ID
+      const friendId = membersList.findIndex(member => member === selectedFriend) + 1;
+      
+      const response = await fetch('http://10.32.97.206:3000/chats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: `${userName} 和 ${selectedFriend}`,
+          isGroup: false,
+          userIds: [currentUserId, friendId],
+          ownerId: currentUserId
+        }),
+      });
+      
+      const newChat = await response.json();
+      setChats([...chats, newChat]);
+      setSelectedChat(newChat);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('创建好友聊天失败:', error);
     }
-  };  
+  }
+};
+
+  // // Create a new group chat
+  // const createGroupChat = () => {
+  //   if (selectedMembers.length > 0) { // Ensure at least one member is selected
+  //     const newChat: Chat = {
+  //       id: Math.random().toString(36).substr(2, 9),
+  //       name: chatName,
+  //       messages: [],
+  //       isGroup: true,
+  //       members: [userName, ...selectedMembers],
+  //       groupOwner: userName,
+  //     };
+  //     setChats([...chats, newChat]); // Add the new group chat to the chat list
+  //     setChatName(''); // Reset chat name input
+  //     setSelectedMembers([]); // Reset selected members
+  //     setIsModalOpen(false); // Close the modal
+  //     setSelectedChat(newChat); // Set the newly created group chat as the selected chat
+  //   } else {
+  //     alert('请至少选择一个成员');
+  //   }
+  // };
+
+  // 创建群聊
+// 修改 createGroupChat 函数，使用正确的变量
+const createGroupChat = async () => {
+  if (selectedMembers.length > 0) {
+    try {
+      // 将选中的用户名转换为用户ID
+      const selectedMemberIds = selectedMembers.map(member => 
+        membersList.findIndex(m => m === member) + 1);
+      
+      const response = await fetch('http://10.32.97.206:3000/chats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: chatName,
+          isGroup: true,
+          userIds: [currentUserId, ...selectedMemberIds],
+          ownerId: currentUserId
+        }),
+      });
+      
+      const newChat = await response.json();
+      setChats([...chats, newChat]);
+      setSelectedChat(newChat);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('创建群聊失败:', error);
+    }
+  }
+};
 
   const handleMemberSelection = (member: string) => {
     if (chatType === 'group') {
@@ -114,7 +219,7 @@ const ChatPage: React.FC = () => {
       setSelectedFriend(member);
     }
   };
-  
+
 
   // Open the invite members modal for a group chat
   const openInviteModal = () => {
@@ -149,11 +254,11 @@ const ChatPage: React.FC = () => {
       };
       setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
       setIsInviteModalOpen(false);
-  
+
       // Call updateGroupMembers after updating the members
       updateGroupMembers(); // This will update the group members list after changes
     }
-  };  
+  };
 
   // Open the members modal
   const openMembersModal = () => {
@@ -176,7 +281,30 @@ const ChatPage: React.FC = () => {
       setIsInviteModalOpen(false);
     }
   };
-  
+
+  // 获取用户聊天列表
+  const fetchChats = async (userId: string) => {
+    try {
+      const response = await fetch(`http://10.32.97.206:3000/chats/${userId}`);
+      const data = await response.json();
+      setChats(data);
+    } catch (error) {
+      console.error('获取聊天列表失败:', error);
+    }
+  };
+
+  // 获取好友列表
+  const fetchFriends = async (userId: string) => {
+    try {
+      const response = await fetch(`http://10.32.97.206:3000/friends/${userId}`);
+      const data = await response.json();
+      setMembersList(data.map((friend: any) => friend.username));
+    } catch (error) {
+      console.error('获取好友列表失败:', error);
+    }
+  };
+
+
   return (
     <div className="chat-page">
       {/* Left side: Chat list */}
