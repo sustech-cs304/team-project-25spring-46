@@ -59,59 +59,6 @@ app.delete('/comments/by-file/:file_id', async (req, res) => {
   }
 });
 
-
-// -- 用户表
-// CREATE TABLE users (
-//     id SERIAL PRIMARY KEY,
-//     username VARCHAR(50) UNIQUE NOT NULL,
-//     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-// );
-
-// -- 好友关系表
-// CREATE TABLE user_friends (
-//     user_id INTEGER REFERENCES users(id),
-//     friend_id INTEGER REFERENCES users(id),
-//     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-//     PRIMARY KEY (user_id, friend_id)
-// );
-
-// -- 聊天表 (包括私聊和群聊)
-// CREATE TABLE chats (
-//     id SERIAL PRIMARY KEY,
-//     name VARCHAR(100),
-//     is_group BOOLEAN DEFAULT FALSE,
-//     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-//     owner_id INTEGER REFERENCES users(id)
-// );
-
-// -- 聊天成员表
-// CREATE TABLE chat_members (
-//     chat_id INTEGER REFERENCES chats(id),
-//     user_id INTEGER REFERENCES users(id),
-//     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-//     PRIMARY KEY (chat_id, user_id)
-// );
-
-// -- 消息表
-// CREATE TABLE messages (
-//     id SERIAL PRIMARY KEY,
-//     chat_id INTEGER REFERENCES chats(id),
-//     sender_id INTEGER REFERENCES users(id),
-//     content TEXT,
-//     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-// );
-
-
-// -- 初始化用户
-// INSERT INTO users (username) VALUES
-// ('Alice'), ('Bob'), ('Charlie'), ('我');
-
-// -- 初始化好友关系
-// INSERT INTO user_friends (user_id, friend_id) VALUES
-// (1, 2), (2, 1), -- Alice 和 Bob 是好友
-// (1, 3), (3, 1), -- Alice 和 Charlie 是好友
-// (4, 1), (1, 4); -- 我和 Alice 是好友
-
 app.get('/users', async (req, res) => {
   try {
     const result = await pool.query(`
