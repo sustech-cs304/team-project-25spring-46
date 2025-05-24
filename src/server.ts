@@ -150,23 +150,25 @@ app.get('/chats/:username', async (req, res) => {
 });
 
 
-// 获取聊天记录
 app.get('/friend-messages/:user1/:user2', async (req, res) => {
   const { user1, user2 } = req.params;
   try {
     const result = await pool.query(`
-      SELECT * FROM friend_message
+      SELECT fm.*, u.username AS sender_name
+      FROM friend_message fm
+      JOIN users u ON fm.sender = u.id
       WHERE (sender = $1 AND receiver = $2) OR (sender = $2 AND receiver = $1)
       ORDER BY time
     `, [user1, user2]);
-    res.json(result.rows);
+
+    res.json(result.rows); // [{ text: "...", sender_name: "我", ... }]
   } catch (e) {
     res.status(500).send('获取好友消息失败: ' + e);
   }
 });
 
 app.post('/friend-messages', async (req, res) => {
-  const { sender, receiver, text } = req.body;
+  const { sender, receiver, text } = req.body; // 传入用户 ID
   try {
     const result = await pool.query(`
       INSERT INTO friend_message (sender, receiver, text)
@@ -183,7 +185,9 @@ app.get('/group-messages/:groupId', async (req, res) => {
   const { groupId } = req.params;
   try {
     const result = await pool.query(`
-      SELECT * FROM group_message
+      SELECT gm.*, u.username AS sender_name
+      FROM group_message gm
+      JOIN users u ON gm.sender = u.id
       WHERE group_id = $1
       ORDER BY time
     `, [groupId]);
@@ -194,13 +198,14 @@ app.get('/group-messages/:groupId', async (req, res) => {
 });
 
 app.post('/group-messages', async (req, res) => {
-  const { group_id, sender, text } = req.body;
+  const { group_id, sender, text } = req.body; // sender 是用户 ID
   try {
     const result = await pool.query(`
       INSERT INTO group_message (group_id, sender, text)
       VALUES ($1, $2, $3)
       RETURNING *
     `, [group_id, sender, text]);
+
     res.json(result.rows[0]);
   } catch (e) {
     res.status(500).send('发送群聊消息失败: ' + e);

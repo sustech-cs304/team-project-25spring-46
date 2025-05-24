@@ -24,8 +24,8 @@ CREATE TABLE group_members
 CREATE TABLE friend_message
 (
     id       SERIAL PRIMARY KEY,
-    sender   VARCHAR(50) NOT NULL,
-    receiver VARCHAR(50) NOT NULL,
+    sender   INTEGER REFERENCES users (id) ON DELETE CASCADE,
+    receiver INTEGER REFERENCES users (id) ON DELETE CASCADE,
     text     TEXT        NOT NULL,
     time     TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -33,7 +33,7 @@ CREATE TABLE group_message
 (
     id       SERIAL PRIMARY KEY,
     group_id INTEGER REFERENCES groups (id) ON DELETE CASCADE,
-    sender   VARCHAR(50) NOT NULL,
+    sender   INTEGER REFERENCES users (id) ON DELETE CASCADE,
     text     TEXT        NOT NULL,
     time     TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
