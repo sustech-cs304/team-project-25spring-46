@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import './ChatPage.css';
 
+// const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = `http://localhost:3000`;
+
+console.log('API_BASE =', API_BASE);
+
 // Chat type definition
 type Chat = {
   id: string; // Unique chat identifier
@@ -77,7 +82,7 @@ const ChatPage: React.FC = () => {
 const sendMessage = async () => {
   if (newMessage.trim() && selectedChat) {
     try {
-      await fetch('http://10.32.97.206:3000/messages', {
+      await fetch(`${API_BASE}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -130,7 +135,7 @@ const createFriendChat = async () => {
       // 这里简化处理，假设 selectedFriend 是用户名，需要查询对应的ID
       const friendId = membersList.findIndex(member => member === selectedFriend) + 1;
       
-      const response = await fetch('http://10.32.97.206:3000/chats', {
+      const response = await fetch(`${API_BASE}/chats`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,7 +188,7 @@ const createGroupChat = async () => {
       const selectedMemberIds = selectedMembers.map(member => 
         membersList.findIndex(m => m === member) + 1);
       
-      const response = await fetch('http://10.32.97.206:3000/chats', {
+      const response = await fetch(`${API_BASE}/chats`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -246,17 +251,44 @@ const createGroupChat = async () => {
   };
 
   // Invite selected members to the group chat
-  const inviteMembersToGroupChat = () => {
-    if (selectedChat && selectedChat.isGroup) {
-      const updatedChat = {
-        ...selectedChat,
-        members: [...selectedChat.members!, ...selectedMembersForInvite],
-      };
-      setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
-      setIsInviteModalOpen(false);
+  // const inviteMembersToGroupChat = () => {
+  //   if (selectedChat && selectedChat.isGroup) {
+  //     const updatedChat = {
+  //       ...selectedChat,
+  //       members: [...selectedChat.members!, ...selectedMembersForInvite],
+  //     };
+  //     setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
+  //     setIsInviteModalOpen(false);
 
-      // Call updateGroupMembers after updating the members
-      updateGroupMembers(); // This will update the group members list after changes
+  //     // Call updateGroupMembers after updating the members
+  //     updateGroupMembers(); // This will update the group members list after changes
+  //   }
+  // };
+  const inviteMembersToGroupChat = async () => {
+    if (selectedChat && selectedChat.isGroup) {
+      try {
+        const userIds = selectedMembersForInvite.map(member => 
+          membersList.findIndex(m => m === member) + 1 // 简单地将用户名映射为 ID（1-based index）
+        );
+  
+        await fetch(`${API_BASE}/chats/${selectedChat.id}/members`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds })
+        });
+  
+        // 更新前端成员列表，去重合并
+        const updatedChat = {
+          ...selectedChat,
+          members: [...new Set([...selectedChat.members!, ...selectedMembersForInvite])]
+        };
+  
+        setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
+        setSelectedMembersForInvite([]);
+        setIsInviteModalOpen(false);
+      } catch (error) {
+        console.error('邀请成员失败:', error);
+      }
     }
   };
 
@@ -271,21 +303,21 @@ const createGroupChat = async () => {
   };
 
 
-  const updateGroupMembers = () => {
-    if (selectedChat && selectedChat.isGroup) {
-      const updatedChat = {
-        ...selectedChat,
-        members: [...new Set([...selectedChat.members!, ...selectedMembersForInvite])], // Prevent duplicates
-      };
-      setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
-      setIsInviteModalOpen(false);
-    }
-  };
+  // const updateGroupMembers = () => {
+  //   if (selectedChat && selectedChat.isGroup) {
+  //     const updatedChat = {
+  //       ...selectedChat,
+  //       members: [...new Set([...selectedChat.members!, ...selectedMembersForInvite])], // Prevent duplicates
+  //     };
+  //     setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
+  //     setIsInviteModalOpen(false);
+  //   }
+  // };
 
   // 获取用户聊天列表
   const fetchChats = async (userId: string) => {
     try {
-      const response = await fetch(`http://10.32.97.206:3000/chats/${userId}`);
+      const response = await fetch(`${API_BASE}/chats/${userId}`);
       const data = await response.json();
       setChats(data);
     } catch (error) {
@@ -296,7 +328,7 @@ const createGroupChat = async () => {
   // 获取好友列表
   const fetchFriends = async (userId: string) => {
     try {
-      const response = await fetch(`http://10.32.97.206:3000/friends/${userId}`);
+      const response = await fetch(`${API_BASE}/friends/${userId}`);
       const data = await response.json();
       setMembersList(data.map((friend: any) => friend.username));
     } catch (error) {

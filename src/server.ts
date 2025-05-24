@@ -217,6 +217,24 @@ app.get('/messages/:chatId', async (req, res) => {
   }
 });
 
+// 添加群聊成员接口
+app.post('/chats/:chatId/members', async (req, res) => {
+  const { chatId } = req.params;
+  const { userIds } = req.body; // 接收 userIds: number[]
+
+  try {
+    const insertPromises = userIds.map((userId: number) =>
+      pool.query('INSERT INTO chat_members (chat_id, user_id) VALUES ($1, $2)', [chatId, userId])
+    );
+
+    await Promise.all(insertPromises);
+    res.status(200).send('成员添加成功');
+  } catch (e) {
+    res.status(500).send('添加成员失败: ' + e);
+  }
+});
+
+
 app.listen(3000, () => {
-  console.log('评论服务运行于 http://10.32.97.206:3000');
+  console.log('评论服务运行于 http://localhost:3000');
 });
