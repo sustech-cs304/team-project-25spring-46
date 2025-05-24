@@ -30,19 +30,103 @@ const ChatPage: React.FC = () => {
   const [chatType, setChatType] = useState<'none' | 'group' | 'friend'>('none'); // Chat type ('none', 'group', or 'friend')
   const [selectedFriend, setSelectedFriend] = useState<string>(''); // Selected friend for friend chat
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]); // Selected members for group chat
-  const [membersList, setMembersList] = useState<string[]>(['Alice', 'Bob', 'Charlie', '我']); // List of possible members (static list)
+  const [membersList, setMembersList] = useState<string[]>([]); // List of possible members (static list)
   const [isModalOpen, setIsModalOpen] = useState(false); // Whether the modal is open or not
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false); // Invite members modal
   const [selectedMembersForInvite, setSelectedMembersForInvite] = useState<string[]>([]); // Selected members for invitation
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false); // State for members modal
-  // 修改 useState 部分，移除未使用的 setCurrentUserId
   const [currentUserId] = useState<string>('1'); // 假设当前用户ID为1，实际应用中应从登录状态获取
 
-    // 数据获取effect
-    useEffect(() => {
-      fetchChats(currentUserId);
-      fetchFriends(currentUserId);
-    }, [currentUserId]);
+  // 数据获取effect
+  // useEffect(() => {
+  //   fetchChats(currentUserId);
+  //   fetchFriends(currentUserId);
+  // }, [currentUserId]);
+  useEffect(() => {
+    fetchChats(currentUserId);
+    fetchAllUsers(); // 代替 fetchFriends
+  }, [currentUserId]);
+
+  const fetchAllUsers = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/users`);
+      const data = await response.json();
+      setMembersList(data.map((u: any) => u.username)); // 提取 username 字符串
+    } catch (error) {
+      console.error('获取用户列表失败:', error);
+    }
+  };
+  
+  
+
+  // // 获取用户聊天列表
+  // const fetchChats = async (userId: string) => {
+  //   try {
+  //     const response = await fetch(`${API_BASE}/group-chats/${userId}`);
+  //     const data = await response.json();
+  //     setChats(data);
+  //   } catch (error) {
+  //     console.error('获取聊天列表失败:', error);
+  //   }
+  // };
+
+  // // 获取好友列表
+  // const fetchFriends = async (userId: string) => {
+  //   try {
+  //     const response = await fetch(`${API_BASE}/friends/${userId}`);
+  //     const data = await response.json();
+  //     setMembersList(data.map((friend: any) => friend.username));
+  //   } catch (error) {
+  //     console.error('获取好友列表失败:', error);
+  //   }
+  // };
+
+  const fetchChats = async (userId: string) => {
+    try {
+      const [groupResp, friendResp] = await Promise.all([
+        fetch(`${API_BASE}/group-chats/${userId}`),
+        fetch(`${API_BASE}/friend-chats/${userId}`)
+      ]);
+  
+      const groupChats = await groupResp.json();
+      const friendChats = await friendResp.json();
+  
+      setChats([...groupChats, ...friendChats]); // 合并群聊和好友聊天
+    } catch (error) {
+      console.error('获取聊天列表失败:', error);
+    }
+  };
+
+
+  // Select a chat from the list and view its messages
+  const selectChat = async (chat: Chat) => {
+    try {
+      let messages: any[] = [];
+
+      if (chat.isGroup) {
+        const response = await fetch(`${API_BASE}/group-messages/${chat.id}`);
+        messages = await response.json();
+      } else {
+        const otherName = chat.name.replace(`${userName} 和 `, '').replace(` 和 ${userName}`, '');
+        const response = await fetch(`${API_BASE}/friend-messages/${userName}/${otherName}`);
+        messages = await response.json();
+      }
+
+      const enrichedChat = {
+        ...chat,
+        messages: messages.map((msg: any) => ({
+          sender: msg.sender,
+          text: msg.text,
+          time: new Date(msg.time).toLocaleTimeString().slice(0, 5)
+        }))
+      };
+
+      setSelectedChat(enrichedChat);
+    } catch (e) {
+      console.error('获取消息失败:', e);
+    }
+  };
+
 
   // Open modal for creating a group chat or adding a friend
   const openModal = (isGroup: boolean) => {
@@ -56,12 +140,6 @@ const ChatPage: React.FC = () => {
     setChatName(''); // Clear chat name
     setSelectedFriend(''); // Clear selected friend
     setSelectedMembers([]); // Clear selected members
-  };
-
-  // Select a chat from the list and view its messages
-  const selectChat = (chat: Chat) => {
-    setSelectedChat(chat); // Set the selected chat
-    setChatType('none'); // Reset chat type (no modal is open anymore)
   };
 
   // // Send a message to the selected chat
@@ -78,39 +156,39 @@ const ChatPage: React.FC = () => {
   //   }
   // };
   // 发送消息
-// 修改 sendMessage 函数，移除未使用的 sentMessage
-const sendMessage = async () => {
-  if (newMessage.trim() && selectedChat) {
-    try {
-      await fetch(`${API_BASE}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chatId: selectedChat.id,
-          senderId: currentUserId,
-          content: newMessage
-        }),
-      });
-      
-      // 更新本地状态
-      const updatedChat = {
-        ...selectedChat,
-        messages: [...selectedChat.messages, {
-          sender: userName,
-          text: newMessage,
-          time: new Date().toLocaleTimeString().slice(0, 5)
-        }]
-      };
-      
-      setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
-      setNewMessage('');
-    } catch (error) {
-      console.error('发送消息失败:', error);
+  // 修改 sendMessage 函数，移除未使用的 sentMessage
+  const sendMessage = async () => {
+    if (newMessage.trim() && selectedChat) {
+      try {
+        await fetch(`${API_BASE}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chatId: selectedChat.id,
+            senderId: currentUserId,
+            content: newMessage
+          }),
+        });
+
+        // 更新本地状态
+        const updatedChat = {
+          ...selectedChat,
+          messages: [...selectedChat.messages, {
+            sender: userName,
+            text: newMessage,
+            time: new Date().toLocaleTimeString().slice(0, 5)
+          }]
+        };
+
+        setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
+        setNewMessage('');
+      } catch (error) {
+        console.error('发送消息失败:', error);
+      }
     }
-  }
-};
+  };
 
 
   // // Create a new friend chat
@@ -128,35 +206,35 @@ const sendMessage = async () => {
   //   }
   // };
   // 创建好友聊天
-const createFriendChat = async () => {
-  if (selectedFriend) {
-    try {
-      // 在实际应用中，你需要有一个从用户名到用户ID的映射
-      // 这里简化处理，假设 selectedFriend 是用户名，需要查询对应的ID
-      const friendId = membersList.findIndex(member => member === selectedFriend) + 1;
-      
-      const response = await fetch(`${API_BASE}/chats`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: `${userName} 和 ${selectedFriend}`,
-          isGroup: false,
-          userIds: [currentUserId, friendId],
-          ownerId: currentUserId
-        }),
-      });
-      
-      const newChat = await response.json();
-      setChats([...chats, newChat]);
-      setSelectedChat(newChat);
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error('创建好友聊天失败:', error);
+  const createFriendChat = async () => {
+    if (selectedFriend) {
+      try {
+        // 在实际应用中，你需要有一个从用户名到用户ID的映射
+        // 这里简化处理，假设 selectedFriend 是用户名，需要查询对应的ID
+        const friendId = membersList.findIndex(member => member === selectedFriend) + 1;
+
+        const response = await fetch(`${API_BASE}/chats`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: `${userName} 和 ${selectedFriend}`,
+            isGroup: false,
+            userIds: [currentUserId, friendId],
+            ownerId: currentUserId
+          }),
+        });
+
+        const newChat = await response.json();
+        setChats([...chats, newChat]);
+        setSelectedChat(newChat);
+        setIsModalOpen(false);
+      } catch (error) {
+        console.error('创建好友聊天失败:', error);
+      }
     }
-  }
-};
+  };
 
   // // Create a new group chat
   // const createGroupChat = () => {
@@ -180,36 +258,36 @@ const createFriendChat = async () => {
   // };
 
   // 创建群聊
-// 修改 createGroupChat 函数，使用正确的变量
-const createGroupChat = async () => {
-  if (selectedMembers.length > 0) {
-    try {
-      // 将选中的用户名转换为用户ID
-      const selectedMemberIds = selectedMembers.map(member => 
-        membersList.findIndex(m => m === member) + 1);
-      
-      const response = await fetch(`${API_BASE}/chats`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: chatName,
-          isGroup: true,
-          userIds: [currentUserId, ...selectedMemberIds],
-          ownerId: currentUserId
-        }),
-      });
-      
-      const newChat = await response.json();
-      setChats([...chats, newChat]);
-      setSelectedChat(newChat);
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error('创建群聊失败:', error);
+  // 修改 createGroupChat 函数，使用正确的变量
+  const createGroupChat = async () => {
+    if (selectedMembers.length > 0) {
+      try {
+        // 将选中的用户名转换为用户ID
+        const selectedMemberIds = selectedMembers.map(member =>
+          membersList.findIndex(m => m === member) + 1);
+
+        const response = await fetch(`${API_BASE}/chats`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: chatName,
+            isGroup: true,
+            userIds: [currentUserId, ...selectedMemberIds],
+            ownerId: currentUserId
+          }),
+        });
+
+        const newChat = await response.json();
+        setChats([...chats, newChat]);
+        setSelectedChat(newChat);
+        setIsModalOpen(false);
+      } catch (error) {
+        console.error('创建群聊失败:', error);
+      }
     }
-  }
-};
+  };
 
   const handleMemberSelection = (member: string) => {
     if (chatType === 'group') {
@@ -267,22 +345,22 @@ const createGroupChat = async () => {
   const inviteMembersToGroupChat = async () => {
     if (selectedChat && selectedChat.isGroup) {
       try {
-        const userIds = selectedMembersForInvite.map(member => 
+        const userIds = selectedMembersForInvite.map(member =>
           membersList.findIndex(m => m === member) + 1 // 简单地将用户名映射为 ID（1-based index）
         );
-  
+
         await fetch(`${API_BASE}/chats/${selectedChat.id}/members`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userIds })
         });
-  
+
         // 更新前端成员列表，去重合并
         const updatedChat = {
           ...selectedChat,
           members: [...new Set([...selectedChat.members!, ...selectedMembersForInvite])]
         };
-  
+
         setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
         setSelectedMembersForInvite([]);
         setIsInviteModalOpen(false);
@@ -313,29 +391,6 @@ const createGroupChat = async () => {
   //     setIsInviteModalOpen(false);
   //   }
   // };
-
-  // 获取用户聊天列表
-  const fetchChats = async (userId: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/chats/${userId}`);
-      const data = await response.json();
-      setChats(data);
-    } catch (error) {
-      console.error('获取聊天列表失败:', error);
-    }
-  };
-
-  // 获取好友列表
-  const fetchFriends = async (userId: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/friends/${userId}`);
-      const data = await response.json();
-      setMembersList(data.map((friend: any) => friend.username));
-    } catch (error) {
-      console.error('获取好友列表失败:', error);
-    }
-  };
-
 
   return (
     <div className="chat-page">
