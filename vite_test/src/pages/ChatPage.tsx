@@ -11,7 +11,7 @@ console.log('API_BASE =', API_BASE);
 type Chat = {
   id: string; // Unique chat identifier
   name: string; // Chat name
-  messages: { sender: string; text: string; time: string }[]; // Array of messages in the chat
+  messages?: { sender: string; text: string; time: string }[]; // Array of messages in the chat
   isGroup: boolean; // Whether it's a group chat or not
   members?: string[]; // List of members (for group chats)
   groupOwner?: string; // The owner of the group chat
@@ -36,7 +36,6 @@ const ChatPage: React.FC = () => {
   const [selectedMembersForInvite, setSelectedMembersForInvite] = useState<string[]>([]); // Selected members for invitation
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false); // State for members modal
   const [currentUserId] = useState<string>('1');
-  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchChats(currentUserId);
@@ -78,18 +77,19 @@ const ChatPage: React.FC = () => {
         const response = await fetch(`${API_BASE}/group-messages/${chat.id}`);
         messages = await response.json();
       } else {
-        if (!selectedFriendId) {
+        if (!chat.id) {
           console.error('没有选中的好友 ID');
           return;
         }
 
-        const response = await fetch(`${API_BASE}/friend-messages/${currentUserId}/${selectedFriendId}`);
+        const response = await fetch(`${API_BASE}/friend-messages/${currentUserId}/${chat.id}`);
         messages = await response.json();
       }
+      console.log('massage:', messages)
 
       const enrichedChat = {
         ...chat,
-        messages: messages.map((msg: any) => ({
+        messages: (messages || []).map((msg: any) => ({
           sender: msg.sender_name,
           text: msg.text,
           time: new Date(msg.time).toLocaleTimeString().slice(0, 5)
@@ -98,7 +98,9 @@ const ChatPage: React.FC = () => {
 
       setSelectedChat(enrichedChat);
     } catch (e) {
-      console.error('获取消息失败:', e);
+      if (!chat.id) {
+        console.error('获取消息失败:', e);
+      }
     }
   };
 
@@ -130,7 +132,10 @@ const ChatPage: React.FC = () => {
         };
 
         // 发送到后端
+        
+        console.log('out: ', selectedChat)
         if (selectedChat.isGroup) {
+          console.log('in: ', selectedChat)
           await fetch(`${API_BASE}/group-messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -141,17 +146,13 @@ const ChatPage: React.FC = () => {
             })
           });
         } else {
-          if (!selectedFriendId) {
-            console.error('私聊消息发送失败：缺少 friendId');
-            return;
-          }
-
+          console.log('in: ', selectedChat)
           await fetch(`${API_BASE}/friend-messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               sender: parseInt(currentUserId),
-              receiver: parseInt(selectedFriendId),
+              receiver: parseInt(selectedChat.id),
               text: newMessage
             })
           });
@@ -335,13 +336,10 @@ const ChatPage: React.FC = () => {
             key={chat.id}
             className="chat-item"
             onClick={() => {
-              if (!chat.isGroup) {
-                setSelectedFriendId(chat.id); // chat.id 是好友 userId
-              } else {
-                setSelectedFriendId(null);    // ✅ 群聊不需要选中好友
-              }
-              selectChat(chat);
-            }}          >
+              setSelectedChat(chat);
+              selectChat(chat); // ✅ 直接传 chat，而不是从状态里等它更新
+            }}
+          >
             {chat.name}
           </div>
         ))}
@@ -366,7 +364,7 @@ const ChatPage: React.FC = () => {
             </div>
             <div className="messages">
               {/* Display messages in the selected chat */}
-              {selectedChat.messages.map((message, index) => (
+              {(selectedChat.messages || []).map((message, index) => (
                 <div
                   key={index}
                   className={`message ${message.sender === userName ? 'my-message' : 'other-message'}`}
