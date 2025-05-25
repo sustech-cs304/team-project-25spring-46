@@ -46,10 +46,11 @@ export interface RawCommentInput {
     author?: string;
 }
 
-export interface CommentData {
+export type CommentData =
+  |{
     id: string;
     page: number;
-    type: "text" | "highlight" | "underline";
+    type: "text";
     content: string;
     position: {
       x: number;
@@ -60,6 +61,34 @@ export interface CommentData {
     author: string;
     time: string;
   }
+  |{
+    id: string;
+    page: number;
+    type: "highlight";
+    content: string;
+    position: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+    author: string;
+    time: string;
+  }
+  |{
+    id: string;
+    page: number;
+    type: "underline";
+    content: string;
+    position: {
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+    };
+    author: string;
+    time: string;
+  };
 
 export function parsePosition(posStr: string | null | undefined): { x: number, y: number, width?: number, height?: number } {
     try {
@@ -165,6 +194,7 @@ export async function deleteCommentByFile(filePath: string): Promise<void> {
 }
 
 export async function getAllComments(filePath: string): Promise<CommentData[]> {
+    console.log('getAllComments: 开始获取评论, filePath =', filePath);
     const file_id = await hashFilePath(filePath);
     try {
         const response = await axios.get(`${API_BASE_URL}/comments`, {

@@ -7,24 +7,44 @@ import CodeAnnotation from './CodeAnnotation';
 import SidePanelContainer from './SidePanelContainer';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { CommentData, CodeSnippetData } from '../types/annotations';
-import { getAllComments } from '../../../src/commentService';
+import { getVsCodeApi } from '../vscodeApi';
 
 interface DisplayPageProps {
   filePath: string;
 }
 
 const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
+  console.log('PageLayout: 已进入, filePath =', filePath);
   const { openPanels } = useSidePanel();
   const [comments, setComments] = useState<CommentData[]>([]);
   const dummyCodeBlocks: CodeSnippetData[] = [
     { id: 'code1', page: 2, content: 'console.log("Hello World");', position: { x: 0.5, y: 0.5, width: 0.6, height: 0.1 } }
   ];
 
+  // 获取评论
   useEffect(() => {
-    getAllComments(filePath)
-      .then(setComments)
-      .catch(err => console.error('加载评论失败:', err));
+    console.log('PageLayout: 请求获取评论, filePath =', filePath);
+    const vscode = getVsCodeApi();
+    vscode.postMessage({
+      command: 'getAllComments',
+      filePath,
+    });
   }, [filePath]);
+ 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data;
+      if (message.command === 'getAllCommentsSuccess') {
+        console.log('PageLayout: 成功获取评论', message.comments);
+        setComments(message.comments);
+      } else if (message.command === 'getAllCommentsError') {
+        console.error('PageLayout: 获取评论失败', message.error);
+      }
+    };
+  
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   // 判断侧边栏
   const hasCode = openPanels.some(p => p.type === 'code');
@@ -56,10 +76,14 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
   );
 };
 
-const DisplayPage: React.FC<DisplayPageProps> = ({ filePath }) => (
-  <SidePanelProvider>
-    <PageLayout filePath={filePath} />
-  </SidePanelProvider>
-);
+const DisplayPage: React.FC<DisplayPageProps> = ({ filePath }) => {
+  console.log('已进入 DisplayPage, filePath =', filePath);
+
+  return (
+    <SidePanelProvider>
+      <PageLayout filePath={filePath} />
+    </SidePanelProvider>
+  );
+};
 
 export default DisplayPage;

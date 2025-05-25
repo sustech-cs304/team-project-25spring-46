@@ -11,6 +11,10 @@ import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 import { activate as activateTestCommands } from './test/testComment';
 import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask} from './taskService';
 import { getProjects } from './projectService';
+<<<<<<< HEAD
+=======
+import { getAllComments } from './commentService';
+>>>>>>> a25896a730623519ff6cb60a868a6d35c4a18695
 
 let currentUserId: number | null = null;
 // This method is called when your extension is activated
@@ -213,7 +217,19 @@ export function activate(context: vscode.ExtensionContext) {
 						panel.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
-				
+				case 'getAllComments':
+					try {
+						const comments = await getAllComments(message.filePath);
+						panel.webview.postMessage({
+						command: 'getAllCommentsSuccess',
+						comments,
+						});
+					} catch (error) {
+						panel.webview.postMessage({
+						command: 'getAllCommentsError',
+						error: error || String(error),
+						});
+					}
 				case 'runCodeRecognition':
 				try {
 					const parts = message.filePath.split("/");
@@ -290,9 +306,12 @@ export function activate(context: vscode.ExtensionContext) {
 				case 'getPdfPath':
 					try {
 						const absolutePath = await getFileAbsolutePath(message.path);
+						console.log("File's Absolute Path is: "+absolutePath);
 						const pdfPath = vscode.Uri.file(absolutePath);
 						const pdfUri = panel.webview.asWebviewUri(pdfPath);
+						console.log("path: "+pdfUri.toString());
 						panel.webview.postMessage({ command: 'PdfPath', path: pdfUri.toString() });
+						console.log("finish command getPdfPath ----");
 					} catch (error: any) {
 						panel.webview.postMessage({ command: 'error', error: error.message });
 					}

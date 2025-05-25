@@ -44,6 +44,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ filePath, children }) => {
     window.addEventListener("message", handleMessage);
     vscode?.postMessage({ command: "getPdfWorkerPath" });
     vscode?.postMessage({ command: "getPdfPath", path: filePath });
+    console.log("finish getPdfPath in PDFViewer")
     return () => window.removeEventListener("message", handleMessage);
   }, [vscode, filePath]);
 
