@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import './ChatPage.css';
+import { chat } from 'vscode';
 
 // const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const API_BASE = `http://localhost:3000`;
@@ -12,7 +13,7 @@ type Chat = {
   id: string; // Unique chat identifier
   name: string; // Chat name
   messages?: { sender: string; text: string; time: string }[]; // Array of messages in the chat
-  isGroup: boolean; // Whether it's a group chat or not
+  type: string; // Whether it's a group chat or not
   members?: string[]; // List of members (for group chats)
   groupOwner?: string; // The owner of the group chat
 };
@@ -27,7 +28,7 @@ const ChatPage: React.FC = () => {
   const [newMessage, setNewMessage] = useState<string>(''); // New message input
   const [chatName, setChatName] = useState<string>(''); // Chat name for new chat
   const [userName] = useState<string>('我'); // Current user's name (hardcoded to '我' here)
-  const [chatType, setChatType] = useState<'none' | 'group' | 'friend'>('none'); // Chat type ('none', 'group', or 'friend')
+  const [chatType, setChatType] = useState<string>('none'); // Chat type ('none', 'group', or 'friend')
   const [selectedFriend, setSelectedFriend] = useState<string>(''); // Selected friend for friend chat
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]); // Selected members for group chat
   const [membersList, setMembersList] = useState<string[]>([]); // List of possible members (static list)
@@ -73,7 +74,7 @@ const ChatPage: React.FC = () => {
     try {
       let messages: any[] = [];
 
-      if (chat.isGroup) {
+      if (chat.type === 'group') {
         const response = await fetch(`${API_BASE}/group-messages/${chat.id}`);
         messages = await response.json();
       } else {
@@ -85,7 +86,6 @@ const ChatPage: React.FC = () => {
         const response = await fetch(`${API_BASE}/friend-messages/${currentUserId}/${chat.id}`);
         messages = await response.json();
       }
-      console.log('massage:', messages)
 
       const enrichedChat = {
         ...chat,
@@ -107,8 +107,8 @@ const ChatPage: React.FC = () => {
 
 
   // Open modal for creating a group chat or adding a friend
-  const openModal = (isGroup: boolean) => {
-    setChatType(isGroup ? 'group' : 'friend'); // Set chat type based on whether it's a group or friend chat
+  const openModal = (isGroup: string) => {
+    setChatType(isGroup); // Set chat type based on whether it's a group or friend chat
     setIsModalOpen(true); // Open the modal
   };
 
@@ -120,58 +120,64 @@ const ChatPage: React.FC = () => {
     setSelectedMembers([]); // Clear selected members
   };
 
-  const sendMessage = async () => {
-    if (newMessage.trim() && selectedChat) {
-      try {
-        // 构建消息对象
-        const now = new Date().toLocaleTimeString().slice(0, 5);
-        const messageToAdd = {
-          sender: userName,
-          text: newMessage,
-          time: now
-        };
+  // 公共本地 UI 更新函数
+  const updateLocalMessage = () => {
+    if (!selectedChat) return;
+    const now = new Date().toLocaleTimeString().slice(0, 5);
+    const messageToAdd = {
+      sender: userName,
+      text: newMessage,
+      time: now
+    };
 
-        // 发送到后端
-        
-        console.log('out: ', selectedChat)
-        if (selectedChat.isGroup) {
-          console.log('in: ', selectedChat)
-          await fetch(`${API_BASE}/group-messages`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              group_id: selectedChat.id,         // 群组 ID
-              sender: parseInt(currentUserId),   // 当前用户 ID
-              text: newMessage
-            })
-          });
-        } else {
-          console.log('in: ', selectedChat)
-          await fetch(`${API_BASE}/friend-messages`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sender: parseInt(currentUserId),
-              receiver: parseInt(selectedChat.id),
-              text: newMessage
-            })
-          });
-        }
+    const updatedChat = {
+      ...selectedChat,
+      messages: [...(selectedChat.messages || []), messageToAdd]
+    };
 
-        // 本地 UI 更新（添加到当前聊天）
-        const updatedChat = {
-          ...selectedChat,
-          messages: [...(selectedChat.messages || []), messageToAdd]
-        };
+    setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
+    setSelectedChat(updatedChat);
+    setNewMessage('');
+  };
 
-        setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
-        setSelectedChat(updatedChat);
-        setNewMessage('');
-      } catch (error) {
-        console.error('发送消息失败:', error);
-      }
+  const sendGroupMessage = async () => {
+    if (!newMessage.trim() || !selectedChat) return;
+    try {
+      await fetch(`${API_BASE}/group-messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          group_id: selectedChat.id,
+          sender: parseInt(currentUserId),
+          text: newMessage
+        })
+      });
+
+      updateLocalMessage();
+    } catch (error) {
+      console.error('发送群聊消息失败:', error);
     }
   };
+
+  const sendFriendMessage = async () => {
+    if (!newMessage.trim() || !selectedChat) return;
+    try {
+      await fetch(`${API_BASE}/friend-messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender: parseInt(currentUserId),
+          receiver: parseInt(selectedChat.id),
+          text: newMessage
+        })
+      });
+
+      updateLocalMessage();
+    } catch (error) {
+      console.error('发送好友消息失败:', error);
+    }
+  };
+
 
   // 创建好友聊天
   const createFriendChat = async () => {
@@ -253,7 +259,7 @@ const ChatPage: React.FC = () => {
 
   // Open the invite members modal for a group chat
   const openInviteModal = () => {
-    if (selectedChat?.isGroup) {
+    if (selectedChat?.type) {
       setIsInviteModalOpen(true);
     } else {
       alert("只能在群聊中邀请成员");
@@ -275,8 +281,27 @@ const ChatPage: React.FC = () => {
     }
   };
 
+  const handleSendMessage = async (chat: Chat) => {
+    if (!chat) {
+      console.warn('未选择聊天');
+      return;
+    }
+
+    if (!chat?.type) {
+      console.warn('未选择属性');
+      return;
+    }
+    
+    if (chat.type === 'group') {
+      sendGroupMessage();
+    } else {
+      sendFriendMessage();
+    }
+  };
+
+
   const inviteMembersToGroupChat = async () => {
-    if (selectedChat && selectedChat.isGroup) {
+    if (selectedChat && selectedChat.type === 'group') {
       try {
         const userIds = selectedMembersForInvite.map(member =>
           membersList.findIndex(m => m === member) + 1 // 简单地将用户名映射为 ID（1-based index）
@@ -327,8 +352,8 @@ const ChatPage: React.FC = () => {
         </div>
         <div className="button-group">
           {/* Buttons to add a friend or create a group chat */}
-          <button onClick={() => openModal(false)} className="add-chat-btn">添加好友</button>
-          <button onClick={() => openModal(true)} className="add-chat-btn">添加群聊</button>
+          <button onClick={() => openModal('friend')} className="add-chat-btn">添加好友</button>
+          <button onClick={() => openModal('chat')} className="add-chat-btn">添加群聊</button>
         </div>
         {/* Display a list of chats */}
         {chats.map((chat) => (
@@ -351,7 +376,7 @@ const ChatPage: React.FC = () => {
           <>
             <div className="chat-header">
               <h3>{selectedChat.name}</h3>
-              {selectedChat.isGroup && (
+              {selectedChat.type === 'group' && (
                 <>
                   <button onClick={openInviteModal} className="invite-btn">
                     邀请成员
@@ -382,7 +407,7 @@ const ChatPage: React.FC = () => {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)} // Update message input as user types
               />
-              <button onClick={sendMessage}>发送</button>
+              <button onClick={() => handleSendMessage(selectedChat)}>发送</button>
             </div>
           </>
         ) : (
