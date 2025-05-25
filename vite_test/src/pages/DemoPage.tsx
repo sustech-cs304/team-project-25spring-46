@@ -46,7 +46,7 @@ const PageLayout: React.FC = () => {
   if (openPanels.length === 0) {
     return (
       <PDFViewer filePath='demo.pdf'>
-        <CommentOverlay data={dummyComments} />
+        <CommentOverlay data={dummyComments}/>
         <CodeAnnotation data={dummyCodeBlocks} />
       </PDFViewer>
     );
@@ -56,7 +56,7 @@ const PageLayout: React.FC = () => {
     <PanelGroup direction="horizontal">
       <Panel defaultSize={leftSize}>
         <PDFViewer filePath='demo.pdf'>
-          <CommentOverlay data={dummyComments} />
+          <CommentOverlay data={dummyComments}/>
           <CodeAnnotation data={dummyCodeBlocks} />
         </PDFViewer>
       </Panel>
