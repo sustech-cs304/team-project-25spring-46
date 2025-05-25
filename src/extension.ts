@@ -11,10 +11,7 @@ import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 import { activate as activateTestCommands } from './test/testComment';
 import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask} from './taskService';
 import { getProjects } from './projectService';
-<<<<<<< HEAD
-=======
 import { getAllComments } from './commentService';
->>>>>>> a25896a730623519ff6cb60a868a6d35c4a18695
 
 let currentUserId: number | null = null;
 // This method is called when your extension is activated
