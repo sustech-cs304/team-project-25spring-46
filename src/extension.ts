@@ -6,10 +6,12 @@ import * as fs from 'fs';
 import { createNewCourse, getCourses, getCourseSubfolderFiles, getFileDetails, getFileAbsolutePath} from './courseService';
 import { exec } from 'child_process';
 import pool from './database';
+import supabase, { testSupabaseConnection } from './supabaseClient';
 import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 import { activate as activateTestCommands } from './test/testComment';
 import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask} from './taskService';
 import { getProjects } from './projectService';
+
 let currentUserId: number | null = null;
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -28,6 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
 		vscode.window.showInformationMessage('The extension is running!');
+		await testSupabaseConnection();
 		const panel = vscode.window.createWebviewPanel(
 			'myWebview',
 			'Course Aware IDE',
@@ -36,7 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
 			  enableScripts: true,
 			  localResourceRoots: [
 				vscode.Uri.file(path.join(context.extensionPath, 'dist')),
-				vscode.Uri.file('C:/')
+				vscode.Uri.file('C:/')	
 			  ]
 			}
 		);
@@ -315,65 +318,89 @@ export function activate(context: vscode.ExtensionContext) {
 						panel.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
-			case 'login':
-				try {
-					const { email } = message;
-					const res = await pool.query(
-					'SELECT id, name, email, role FROM users WHERE email = $1',
-					[email]
-					);
-					if (res.rows.length === 0) {
-					// 用户不存在，报错
-					panel.webview.postMessage({
+				case 'login':
+					try {
+						const { email, password } = message;
+						const { data, error } = await supabase
+						.from('users')
+						.select('id, name, email, role, password')
+						.eq('email', email)
+						.single();
+					
+						if (error || !data) {
+						panel.webview.postMessage({
+							command: 'loginResult',
+							success: false,
+							error: '用户不存在或数据库错误'
+						});
+						} else if (data.password !== password) {
+						panel.webview.postMessage({
+							command: 'loginResult',
+							success: false,
+							error: '密码错误'
+						});
+						} else {
+						currentUserId = data.id;
+						panel.webview.postMessage({
+							command: 'loginResult',
+							success: true,
+							user: {
+							id: data.id,
+							name: data.name,
+							email: data.email,
+							role: data.role
+							}
+						});
+						console.log('✅ 使用自建 users 表登录成功，用户 ID:', currentUserId);
+						}
+					} catch (err: any) {
+						panel.webview.postMessage({
 						command: 'loginResult',
 						success: false,
-						error: '用户不存在，请先注册'
-					});
-					} else {
-					const userRecord = res.rows[0];
-					currentUserId = userRecord.id;
-					panel.webview.postMessage({
-						command: 'loginResult',
-						success: true,
-						user: userRecord
-					});
+						error: err.message
+						});
 					}
-				} catch (err: any) {
-					panel.webview.postMessage({
-					command: 'loginResult',
-					success: false,
-					error: err.message
-					});
-				}
-				break;
-
-				// —— 注册（只在此处插入新用户） ——
+					break;
+					  
+				// 替换 register 逻辑（message.command === 'register'）
 				case 'register':
 				try {
-					const { name, email } = message;
-					// 先检查邮箱是否已被注册
-					const exist = await pool.query(
-					'SELECT id FROM users WHERE email = $1',
-					[email]
-					);
-					if (exist.rows.length > 0) {
+					const { name, email, password } = message;
+					// 检查邮箱是否已存在
+					const { data: exist, error: checkError } = await supabase
+					.from('users')
+					.select('id')
+					.eq('email', email)
+					.maybeSingle();
+				
+					if (exist) {
 					panel.webview.postMessage({
 						command: 'registerResult',
 						success: false,
 						error: '该邮箱已被注册'
 					});
 					} else {
-					const insert = await pool.query(
-						'INSERT INTO users(name, email, role) VALUES($1,$2,$3) RETURNING id, name, email, role',
-						[name, email, 'student']
-					);
-					const newUser = insert.rows[0];
-					currentUserId = newUser.id;
-					panel.webview.postMessage({
+					const { data: newUser, error: insertError } = await supabase
+						.from('users')
+						.insert({ name, email, password, role: 'student' })
+						.select('id, name, email, role')
+						.single();
+				
+					if (insertError || !newUser) {
+						panel.webview.postMessage({
+						command: 'registerResult',
+						success: false,
+						error: insertError?.message || '注册失败'
+						});
+					} else {
+						currentUserId = newUser.id;
+						panel.webview.postMessage({
 						command: 'registerResult',
 						success: true,
 						user: newUser
-					});
+						});
+						console.log('✅ 使用自建 users 表注册成功，用户 ID:', currentUserId);
+					}
 					}
 				} catch (err: any) {
 					panel.webview.postMessage({
