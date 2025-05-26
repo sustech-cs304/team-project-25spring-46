@@ -3,7 +3,7 @@
 import axios from 'axios';
 // import { CommentData } from '../vite_test/src/types/annotations';
 
-export const Server_IP = '10.28.60.68'; //'10.32.112.180';
+export const Server_IP = '10.32.112.180'; //'10.28.60.68';
 export const Port = '3000';
 const API_BASE_URL = `http://${Server_IP}:${Port}`;
 

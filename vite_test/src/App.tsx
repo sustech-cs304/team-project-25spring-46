@@ -66,7 +66,7 @@ export default function App() {
              />;
     }
     if (currentPage === 'DisplayPage' && selectedFile) {
-      return <DisplayPage filePath={selectedFile} />;
+      return <DisplayPage filePath={selectedFile} username={user.name}/>;
     }
     switch (currentPage) {
       case 'HomePage':    return <HomePage />;

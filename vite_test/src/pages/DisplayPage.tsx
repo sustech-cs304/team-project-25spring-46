@@ -14,6 +14,7 @@ import { usePDFMetrics } from './PDFViewer';
 
 interface DisplayPageProps {
   filePath: string;
+  username: string;
 }
 
 export interface CommentPosition {
@@ -33,7 +34,7 @@ interface NewComment {
   content: string;
 }
 
-const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
+const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath, username }) => {
   console.log('PageLayout: 已进入, filePath =', filePath);
   const { openPanels } = useSidePanel();
   const [comments, setComments] = useState<CommentData[]>([]);
@@ -83,7 +84,7 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
       page: position.page,
       type: type === 'none' ? undefined : type,
       content,
-      author: '当前用户',
+      author: username,
       x1: position.x1,
       y1: position.y1,
       x2: position.x2,
@@ -114,7 +115,7 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
           // ...(position.x2 && { x2: position.x2 }),
           // ...(position.y2 && { y2: position.y2 })
         },
-        author: '当前用户',
+        author: username,
         time: new Date().toISOString(),
       };
       setComments(prev => [...prev, newComment]);
@@ -132,7 +133,7 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
           width: position.width!,
           height: position.height!
         },
-        author: '当前用户',
+        author: username,
         time: new Date().toISOString(),
       };
       setComments(prev => [...prev, newComment]);
@@ -150,7 +151,7 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
           x2: position.x2!,
           y2: position.y2!
         },
-        author: '当前用户',
+        author: username,
         time: new Date().toISOString(),
       };
       setComments(prev => [...prev, newComment]);
@@ -309,13 +310,13 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
   );
 };
 
-const DisplayPage: React.FC<DisplayPageProps> = ({ filePath }) => {
+const DisplayPage: React.FC<DisplayPageProps> = ({ filePath, username }) => {
   console.log('已进入 DisplayPage, filePath =', filePath);
 
   return (
     <SidePanelProvider>
       <PDFViewer filePath={filePath}>
-        <PageLayout filePath={filePath} />
+        <PageLayout filePath={filePath} username={username} />
       </PDFViewer>
     </SidePanelProvider>
   );
