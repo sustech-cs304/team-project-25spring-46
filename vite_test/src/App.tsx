@@ -13,7 +13,7 @@ import { getVsCodeApi } from './vscodeApi';
 const vscode = getVsCodeApi();
 
 export default function App() {
-  type Page = 'LoginPage' | 'RegisterPage' | 'HomePage' | 'CoursePage' | 'CalendarPage' | 'DemoPage' | 'DisplayPage' | 'FilePage';
+  type Page = 'LoginPage' | 'RegisterPage' | 'HomePage' | 'CoursePage' | 'CalendarPage' | 'DemoPage' | 'ChatPage' | 'DisplayPage' | 'FilePage';
   const [currentPage, setCurrentPage] = useState<Page>('LoginPage');
   const [user, setUser] = useState<UserInfo | null>(null);
   const [selectedFile, setSelectedFile] = useState<string>('');
@@ -95,7 +95,7 @@ export default function App() {
           <div className="flex gap-2">
             <select
               value={currentPage}
-              onChange={e => setCurrentPage(e.target.value as 'HomePage' | 'CoursePage' | 'CalendarPage' | 'DemoPage')}
+              onChange={e => setCurrentPage(e.target.value as 'HomePage' | 'CoursePage' | 'CalendarPage' | 'DemoPage' | 'ChatPage')}
               className="border p-2 rounded-md bg-white shadow"
             >
               <option value="HomePage">主页</option>
