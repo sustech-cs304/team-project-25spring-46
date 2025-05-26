@@ -115,21 +115,27 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ filePath, children }) => {
   // ——— 4. 最终渲染：画布 + 子组件（评论 & 代码标注） ———
   return (
     <div className="relative bg-gray-100 overflow-auto h-full">
-      {pageMetrics.map((m, i) => (
-        <div
-          key={i}
-          className="mx-auto relative mb-2"
-          style={{ width: m.width, height: m.height }}
-        >
-          <canvas
-            ref={(el) => { if (el) canvasRefs.current[i] = el; }}
-            className="block"
-          />
-        </div>
-      ))}
-      <PDFContext.Provider value={{ pageMetrics }}>
-        {children}
-      </PDFContext.Provider>
+      <div className="relative z-0">
+        {pageMetrics.map((m, i) => (
+          <div
+            key={i}
+            className="mx-auto relative mb-2"
+            style={{ width: m.width, height: m.height }}
+          >
+            <canvas
+              ref={(el) => { if (el) canvasRefs.current[i] = el; }}
+              className="block"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* 💡 CommentOverlay 放在一个独立图层中 */}
+      <div className="absolute top-0 left-0 w-full h-full z-10">
+        <PDFContext.Provider value={{ pageMetrics }}>
+          {children}
+        </PDFContext.Provider>
+      </div>
     </div>
   );
 };

@@ -10,7 +10,7 @@ import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 import { activate as activateTestCommands } from './test/testComment';
 import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask} from './taskService';
 import { getProjects } from './projectService';
-import { getAllComments } from './commentService';
+import { addComment, getAllComments } from './commentService';
 
 let currentUserId: number | null = null;
 // This method is called when your extension is activated
@@ -95,6 +95,18 @@ export function activate(context: vscode.ExtensionContext) {
 		panel.webview.onDidReceiveMessage(
 			async message => {
 			  switch (message.command) {
+				case 'addComment':
+					try {
+						console.log("Extension - addComment message.data:", message.data); // 添加日志
+						const { filePath, comment } = message.data;
+						console.log("Extension - addComment filePath:", filePath); // 添加日志
+						console.log("Extension - addComment comment:", comment); // 添加日志
+						const result = await addComment(comment);
+						panel.webview.postMessage({ command: 'addCommentResult', success: true, data: result });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'addCommentResult', success: false, error: error.message });
+					}
+					break;
 				case 'createCourse':
 					try {
 						// 使用 VS Code API 获取用户输入的课程名

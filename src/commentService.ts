@@ -3,7 +3,7 @@
 import axios from 'axios';
 // import { CommentData } from '../vite_test/src/types/annotations';
 
-export const Server_IP = '10.32.112.180';
+export const Server_IP = '10.28.60.68'; //'10.32.112.180';
 export const Port = '3000';
 const API_BASE_URL = `http://${Server_IP}:${Port}`;
 
@@ -114,6 +114,8 @@ export async function hashFilePath(path: string): Promise<string> {
   }
 
 export async function addComment(data: RawCommentInput): Promise<void> {
+    console.log("commentService - addComment data:", data); // 添加日志
+
     const file_id = await hashFilePath(data.filePath);
 
     // 构建 position
@@ -157,11 +159,14 @@ export async function addComment(data: RawCommentInput): Promise<void> {
         author: data.author || '匿名'
     };
 
+    console.log("commentService - addComment payload:", payload); // 添加日志
+
     try {
         const response = await axios.post(`${API_BASE_URL}/comments`, payload);
         if (response.status !== 200) {
             throw new Error(`添加评论失败: ${response.statusText}`);
         }
+        console.log("commentService - addComment response:", response.data); // 添加日志
     } catch (err) {
         console.error('添加评论失败:', err);
         throw new Error(`添加评论失败: ${err}`);

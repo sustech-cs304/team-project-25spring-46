@@ -8,7 +8,12 @@ const CommentDetailPanel: React.FC<{ data: { content: string; author: string; ti
     <div className="flex justify-between items-center bg-blue-500 text-white p-2">
       <div className="text-sm font-semibold">{data.author}</div>
       <div className="text-xs">{data.time}</div>
-      <button className="text-white hover:text-gray-200 text-xs" onClick={onClose}>
+      <button 
+        className="text-white hover:text-gray-200 text-xs" 
+        onClick={() => {
+          console.log('点击了关闭按钮');
+          onClose();
+        }}>
         ✕
       </button>
     </div>
@@ -62,7 +67,7 @@ const SidePanelContainer: React.FC = () => {
   }
 
   return (
-    <div className="p-4 overflow-auto h-full bg-gray-50">
+    <div className="p-4 overflow-auto h-full bg-gray-50 z-20 relative">
       {openPanels.map(panel => {
         if (panel.type === 'comment') {
           return (
