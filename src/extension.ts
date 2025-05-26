@@ -40,7 +40,7 @@ export function activate(context: vscode.ExtensionContext) {
 			  enableScripts: true,
 			  localResourceRoots: [
 				vscode.Uri.file(path.join(context.extensionPath, 'dist')),
-				vscode.Uri.file('C:/')	
+				vscode.Uri.file('C:/')
 			  ]
 			}
 		);
@@ -246,7 +246,7 @@ export function activate(context: vscode.ExtensionContext) {
 						panel.webview.postMessage({ command: 'error', error: error.message });
 						return;
 					}
-			
+
 					// 解析输出的代码文件路径 (每一行一个)
 					const codeFiles = stdout.trim().split('\n');
 					// Promise.all(codeFiles.map(async (codePath) => ({
@@ -291,7 +291,7 @@ export function activate(context: vscode.ExtensionContext) {
 						panel.webview.postMessage({ command: 'aiError', error: error.message });
 					}
 					break;
-			
+
 				case 'generateQuiz':
 					try {
 						const quiz = await generateAIQuiz(message.filePath);
@@ -342,7 +342,7 @@ export function activate(context: vscode.ExtensionContext) {
 						.select('id, name, email, role, password')
 						.eq('email', email)
 						.single();
-					
+
 						if (error || !data) {
 						panel.webview.postMessage({
 							command: 'loginResult',
@@ -377,7 +377,7 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 					}
 					break;
-					  
+
 				// 替换 register 逻辑（message.command === 'register'）
 				case 'register':
 				try {
@@ -388,7 +388,7 @@ export function activate(context: vscode.ExtensionContext) {
 					.select('id')
 					.eq('email', email)
 					.maybeSingle();
-				
+
 					if (exist) {
 					panel.webview.postMessage({
 						command: 'registerResult',
@@ -401,7 +401,7 @@ export function activate(context: vscode.ExtensionContext) {
 						.insert({ name, email, password, role: 'student' })
 						.select('id, name, email, role')
 						.single();
-				
+
 					if (insertError || !newUser) {
 						panel.webview.postMessage({
 						command: 'registerResult',
