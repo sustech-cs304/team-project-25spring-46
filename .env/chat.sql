@@ -1,7 +1,15 @@
-CREATE TABLE users
-(
-    id       SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL
+-- CREATE TABLE users
+-- (
+--     id       SERIAL PRIMARY KEY,
+--     username VARCHAR(50) UNIQUE NOT NULL
+-- );
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('student', 'teacher')),  -- 暂时没用
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE friends
 (

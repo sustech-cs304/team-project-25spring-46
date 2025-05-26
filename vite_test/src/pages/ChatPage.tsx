@@ -209,7 +209,6 @@ const ChatPage: React.FC = () => {
   };
 
   // 创建群聊
-  // 修改 createGroupChat 函数，使用正确的变量
   const createGroupChat = async () => {
     if (selectedMembers.length > 0) {
       try {

@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import pool from './serverDatabase';
+import supabase, { testSupabaseConnection } from './supabaseClient';
 
 const app = express();
 app.use(cors()); // 允许跨域
@@ -64,9 +65,9 @@ app.delete('/comments/by-file/:file_id', async (req, res) => {
 app.get('/users', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT username FROM users ORDER BY id
+      SELECT name FROM users ORDER BY id
     `);
-    res.json(result.rows); // 返回 [{ username: "我" }, { username: "Alice" }, ...]
+    res.json(result.rows); // 返回 [{ name: "我" }, { name: "Alice" }, ...]
   } catch (e) {
     res.status(500).send('获取用户列表失败: ' + e);
   }
@@ -78,7 +79,7 @@ app.get('/friend-chats/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
     const result = await pool.query(`
-      SELECT u.id::text AS id, u.username AS name, 'friend' AS type
+      SELECT u.id::text AS id, u.name AS name, 'friend' AS type
       FROM friends f
       JOIN users u ON u.id = f.friend_id
       WHERE f.user_id = $1
@@ -110,11 +111,11 @@ app.post('/createFriend', async (req: Request, res: Response) => {
 
     // 查询 friendId 对应的用户名
     const result = await pool.query(
-      `SELECT username FROM users WHERE id = $1`,
+      `SELECT name FROM users WHERE id = $1`,
       [friendId]
     );
 
-    const friendName = result.rows[0]?.username || `用户${friendId}`;
+    const friendName = result.rows[0]?.name || `用户${friendId}`;
 
     res.json({
       id: `${currentUserId}-${friendId}`,
@@ -193,7 +194,7 @@ app.get('/friend-messages/:user1/:user2', async (req, res) => {
   console.log('friend get:', user1, user2)
   try {
     const result = await pool.query(`
-      SELECT fm.*, u.username AS sender_name
+      SELECT fm.*, u.name AS sender_name
       FROM friend_message fm
       JOIN users u ON fm.sender = u.id
       WHERE (sender = $1 AND receiver = $2) OR (sender = $2 AND receiver = $1)
@@ -229,7 +230,7 @@ app.get('/group-messages/:groupId', async (req, res) => {
 
   try {
     const result = await pool.query(`
-      SELECT gm.*, u.username AS sender_name
+      SELECT gm.*, u.name AS sender_name
       FROM group_message gm
       JOIN users u ON gm.sender = u.id
       WHERE group_id = $1
