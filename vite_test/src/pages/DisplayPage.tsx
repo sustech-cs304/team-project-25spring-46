@@ -108,10 +108,10 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
         position: {
           x: position.x1,
           y: position.y1,
-          ...(position.width && { width: position.width }),
-          ...(position.height && { height: position.height }),
-          ...(position.x2 && { x2: position.x2 }),
-          ...(position.y2 && { y2: position.y2 })
+          // ...(position.width && { width: position.width }),
+          // ...(position.height && { height: position.height }),
+          // ...(position.x2 && { x2: position.x2 }),
+          // ...(position.y2 && { y2: position.y2 })
         },
         author: '当前用户',
         time: new Date().toISOString(),
@@ -191,58 +191,43 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
       setShowCommentDialog(true); // ✅ 显示弹窗
       console.log('handlePDFClick: text, 点击事件, 显示评论输入框');
     } else if (commentMode === 'highlight') {
-      setTempPosition({
-        ...basePosition,
-        width: 0,
-        height: 0
-      });
-      console.log('handlePDFClick: highlight, 点击事件, 设置临时位置');
+      if (!tempPosition) {
+        setTempPosition(basePosition);
+        console.log('handlePDFClick: highlight, 第一次点击事件, 位置: (', basePosition.x1, basePosition.y1, ')');
+      } else {
+        const newPosition: CommentPosition = {
+          type: 'highlight',
+          page: tempPosition.page,
+          x1: Math.min(tempPosition.x1, x),
+          y1: Math.min(tempPosition.y1, y),
+          width: Math.abs(x - tempPosition.x1),
+          height: Math.abs(y - tempPosition.y1)
+        };
+        setTempPosition(newPosition);
+        console.log('handlePDFClick: highlight, 第二次点击事件, 位置: (', tempPosition.x1, tempPosition.y1, ')');
+        setShowCommentDialog(true);
+        console.log('handlePDFClick: highlight, 第二次点击事件, 最终位置: (', newPosition.x1, newPosition.y1, newPosition.width, newPosition.height, ')');
+      }
     } else if (commentMode === 'underline') {
-      setTempPosition({
-        ...basePosition,
-        x2: x,
-        y2: y
-      });
-      console.log('handlePDFClick: underline, 点击事件, 设置临时位置');
+      if (!tempPosition) {
+        setTempPosition(basePosition);
+        console.log('handlePDFClick: underline, 第一次点击事件, 位置: (', basePosition.x1, basePosition.y1, ')');
+      } else {
+        const newPosition: CommentPosition = {
+          type: 'underline',
+          page: tempPosition.page,
+          x1: tempPosition.x1,
+          y1: tempPosition.y1,
+          x2: x,
+          y2: y
+        };
+        setTempPosition(newPosition);
+        console.log('handlePDFClick: underline, 第二次点击事件, 位置: (', tempPosition.x1, tempPosition.y1, ')');
+        setShowCommentDialog(true); // ✅ 显示弹窗
+        console.log('handlePDFClick: underline, 第二次点击事件, 最终位置: (', newPosition.x1, newPosition.y1, newPosition.x2, newPosition.y2, ')');
+      }
     }
-  }, [commentMode, pageMetrics]);
-
-  const handleMouseUp = useCallback((e: React.MouseEvent) => {
-    if (commentMode === 'none' || !tempPosition) return;
-
-    console.log('handleMouseUp: 鼠标释放事件');
-
-    const toolbar = document.querySelector('.comment-toolbar');
-    if (toolbar && toolbar.contains(e.target as Node)) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-
-    console.log('handleMouseUp: 鼠标释放事件, 位置: (', x, y, ')');
-
-    if (commentMode === 'highlight') {
-      setTempPosition({
-        ...tempPosition,
-        x1: Math.min(tempPosition.x1, x),
-        y1: Math.min(tempPosition.y1, y),
-        width: Math.abs(x - tempPosition.x1),
-        height: Math.abs(y - tempPosition.y1)
-      });
-      console.log('handleMouseUp: highlight, 鼠标释放事件, 最终位置: (', tempPosition.x1, tempPosition.y1, tempPosition.width, tempPosition.height, ')');
-      setShowCommentDialog(true); // ✅ 显示弹窗
-      console.log('handleMouseUp: highlight, 鼠标释放事件, 显示评论对话框');
-    } else if (commentMode === 'underline') {
-      setTempPosition({
-        ...tempPosition,
-        x2: x,
-        y2: y
-      });
-      console.log('handleMouseUp: underline, 鼠标释放事件, 最终位置: (', tempPosition.x1, tempPosition.y1, tempPosition.x2, tempPosition.y2, ')');
-      setShowCommentDialog(true); // ✅ 显示弹窗
-      console.log('handleMouseUp: underline, 鼠标释放事件, 显示评论对话框');
-    }
-  }, [commentMode, tempPosition]);
+  }, [commentMode, tempPosition, pageMetrics]);
 
   // 判断侧边栏
   const hasCode = openPanels.some(p => p.type === 'code');
@@ -254,7 +239,6 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
       <CommentOverlay 
         data={comments} 
         onPDFClick={handlePDFClick}
-        onMouseUp={handleMouseUp}
       />
       <CodeAnnotation data={dummyCodeBlocks} />
       <CommentToolbar
