@@ -1,4 +1,5 @@
 import express from 'express';
+import { Request, Response } from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import pool from './serverDatabase';
@@ -59,6 +60,7 @@ app.delete('/comments/by-file/:file_id', async (req, res) => {
   }
 });
 
+// 获取所有用户
 app.get('/users', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -89,6 +91,43 @@ app.get('/friend-chats/:userId', async (req, res) => {
 });
 
 
+// 创建好友
+app.post('/createFriend', async (req: Request, res: Response) => {
+  const { currentUserId, friendId } = req.body;
+
+  if (!currentUserId || !friendId) {
+    console.log('currentUserId 和 friendId 是必需的');
+  }
+
+  try {
+    // 插入好友关系（双向）
+    await pool.query(
+      `INSERT INTO friends (user_id, friend_id)
+       VALUES ($1, $2), ($2, $1)
+       ON CONFLICT DO NOTHING`,
+      [currentUserId, friendId]
+    );
+
+    // 查询 friendId 对应的用户名
+    const result = await pool.query(
+      `SELECT username FROM users WHERE id = $1`,
+      [friendId]
+    );
+
+    const friendName = result.rows[0]?.username || `用户${friendId}`;
+
+    res.json({
+      id: `${currentUserId}-${friendId}`,
+      name: friendName,
+      type: 'friend',
+      members: [currentUserId, friendId]
+    });
+
+  } catch (error) {
+    console.error('创建好友聊天失败:', error);
+    res.status(500).json({ error: '服务器内部错误' });
+  }
+});
 
 // 获取群聊列表
 app.get('/group-chats/:userId', async (req, res) => {
@@ -107,49 +146,48 @@ app.get('/group-chats/:userId', async (req, res) => {
   }
 });
 
+// 创建群聊
+app.post('/createGroup', async (req: Request, res: Response) => {
+  const { name, userIds, ownerId } = req.body;
 
-// app.get('/chats/:username', async (req, res) => {
-//   const { username } = req.params;
-//   try {
-//     // 群聊
-//     const groupChats = await pool.query(`
-//       SELECT g.id::text, g.name, true AS isGroup
-//       FROM groups g
-//       JOIN group_members gm ON g.id = gm.group_id
-//       JOIN users u ON gm.member_id = u.id
-//       WHERE u.username = $1
-//     `, [username]);
+  if (!name || !Array.isArray(userIds) || userIds.length < 2 || !ownerId) {
+    console.log('缺少群聊名称、成员列表或群主 ID');
+  }
 
-//     // 好友私聊（基于消息记录）
-//     const friendChats = await pool.query(`
-//       SELECT DISTINCT
-//         CASE
-//           WHEN sender = $1 THEN receiver
-//           ELSE sender
-//         END AS friend_name
-//       FROM friend_message
-//       WHERE sender = $1 OR receiver = $1
-//     `, [username]);
+  try {
+    // 插入到 groups 表
+    const groupResult = await pool.query(
+      `INSERT INTO groups (name, owner)
+       VALUES ($1, $2)
+       RETURNING *`,
+      [name, ownerId]
+    );
 
-//     const formattedFriendChats = friendChats.rows.map(row => ({
-//       id: `${username}-${row.friend_name}`, // 自定义id
-//       name: `${username} 和 ${row.friend_name}`,
-//       isGroup: 'friend'
-//     }));
+    const group = groupResult.rows[0];
 
-//     const formattedGroupChats = groupChats.rows.map(row => ({
-//       id: row.id,
-//       name: row.name,
-//       isGroup: 'chat'
-//     }));
+    // 插入到 group_members 表
+    const insertValues = userIds.map((_: any, i: number) => `($1, $${i + 2})`).join(', ');
+    await pool.query(
+      `INSERT INTO group_members (group_id, member_id)
+       VALUES ${insertValues}`,
+      [group.id, ...userIds]
+    );
 
-//     res.json([...formattedGroupChats, ...formattedFriendChats]);
-//   } catch (e) {
-//     res.status(500).send('获取聊天失败: ' + e);
-//   }
-// });
+    res.json({
+      id: group.id,
+      name: group.name,
+      isGroup: 'group',
+      groupOwner: group.owner,
+      members: userIds
+    });
+  } catch (error) {
+    console.error('创建群聊失败:', error);
+    res.status(500).json({ error: '服务器内部错误' });
+  }
+});
 
 
+// 获取好友聊天
 app.get('/friend-messages/:user1/:user2', async (req, res) => {
   const { user1, user2 } = req.params;
   console.log('friend get:', user1, user2)
@@ -168,6 +206,7 @@ app.get('/friend-messages/:user1/:user2', async (req, res) => {
   }
 });
 
+// 发送好友聊天
 app.post('/friend-messages', async (req, res) => {
   const { sender, receiver, text } = req.body; // 传入用户 ID
   console.log('friend post:', sender, receiver)
@@ -183,6 +222,7 @@ app.post('/friend-messages', async (req, res) => {
   }
 });
 
+// 获取群聊信息
 app.get('/group-messages/:groupId', async (req, res) => {
   const { groupId } = req.params;
   console.log('group get:', groupId)
@@ -201,6 +241,7 @@ app.get('/group-messages/:groupId', async (req, res) => {
   }
 });
 
+// 发送群聊信息
 app.post('/group-messages', async (req, res) => {
   const { group_id, sender, text } = req.body; // sender 是用户 ID
   console.log('group post:', sender, text)

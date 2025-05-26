@@ -187,16 +187,14 @@ const ChatPage: React.FC = () => {
         // 这里简化处理，假设 selectedFriend 是用户名，需要查询对应的ID
         const friendId = membersList.findIndex(member => member === selectedFriend) + 1;
 
-        const response = await fetch(`${API_BASE}/chats`, {
+        const response = await fetch(`${API_BASE}/createFriend`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            name: `${userName} 和 ${selectedFriend}`,
-            isGroup: false,
-            userIds: [currentUserId, friendId],
-            ownerId: currentUserId
+            currentUserId: currentUserId,
+            friendId: friendId
           }),
         });
 
@@ -219,14 +217,13 @@ const ChatPage: React.FC = () => {
         const selectedMemberIds = selectedMembers.map(member =>
           membersList.findIndex(m => m === member) + 1);
 
-        const response = await fetch(`${API_BASE}/chats`, {
+        const response = await fetch(`${API_BASE}/createGroup`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             name: chatName,
-            isGroup: true,
             userIds: [currentUserId, ...selectedMemberIds],
             ownerId: currentUserId
           }),
@@ -283,11 +280,13 @@ const ChatPage: React.FC = () => {
 
   const handleSendMessage = async (chat: Chat) => {
     if (!chat) {
+      console.log(chat)
       console.warn('未选择聊天');
       return;
     }
 
     if (!chat?.type) {
+      console.log(chat)
       console.warn('未选择属性');
       return;
     }
@@ -342,18 +341,18 @@ const ChatPage: React.FC = () => {
     <div className="chat-page">
       {/* Left side: Chat list */}
       <div className="chat-list">
-        <div className="search-bar">
+        {/* <div className="search-bar">
           <input
             type="text"
             placeholder="输入聊天名称"
             onChange={(e) => setChatName(e.target.value)} // Update chat name as user types
             value={chatName} // Bind chat name input to state
           />
-        </div>
+        </div> */}
         <div className="button-group">
           {/* Buttons to add a friend or create a group chat */}
           <button onClick={() => openModal('friend')} className="add-chat-btn">添加好友</button>
-          <button onClick={() => openModal('chat')} className="add-chat-btn">添加群聊</button>
+          <button onClick={() => openModal('group')} className="add-chat-btn">添加群聊</button>
         </div>
         {/* Display a list of chats */}
         {chats.map((chat) => (
