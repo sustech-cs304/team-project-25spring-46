@@ -16,7 +16,7 @@ interface DisplayPageProps {
   filePath: string;
 }
 
-interface CommentPosition {
+export interface CommentPosition {
   type: CommentMode;
   x1: number;
   y1: number;
@@ -43,6 +43,7 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
   ];
   
   const [tempPosition, setTempPosition] = useState<CommentPosition | null>(null);
+  const [previewPosition, setPreviewPosition] = useState<CommentPosition | null>(null);
   const [showCommentDialog, setShowCommentDialog] = useState(false);
   const pageMetrics = usePDFMetrics();
 
@@ -229,6 +230,39 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
     }
   }, [commentMode, tempPosition, pageMetrics]);
 
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (commentMode === 'none' || !tempPosition) return;
+    if (tempPosition.type === 'text') return;
+  
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+  
+    let newPreview: CommentPosition | null = null;
+  
+    if (tempPosition.type === 'highlight') {
+      newPreview = {
+        type: 'highlight',
+        page: tempPosition.page,
+        x1: Math.min(tempPosition.x1, x),
+        y1: Math.min(tempPosition.y1, y),
+        width: Math.abs(x - tempPosition.x1),
+        height: Math.abs(y - tempPosition.y1),
+      };
+    } else if (tempPosition.type === 'underline') {
+      newPreview = {
+        type: 'underline',
+        page: tempPosition.page,
+        x1: tempPosition.x1,
+        y1: tempPosition.y1,
+        x2: x,
+        y2: y,
+      };
+    }
+    setPreviewPosition(newPreview);
+    // console.log('handleMouseMove: 鼠标移动事件, 最终位置: (', previewPosition?.x1, previewPosition?.y1, previewPosition?.x2, previewPosition?.y2, ')');
+  }, [commentMode, previewPosition, tempPosition]);
+
   // 判断侧边栏
   const hasCode = openPanels.some(p => p.type === 'code');
   const left = hasCode ? 60 : 70;
@@ -239,15 +273,21 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
       <CommentOverlay 
         data={comments} 
         onPDFClick={handlePDFClick}
+        onMouseMove={handleMouseMove}
+        previewPosition={previewPosition}
       />
       <CodeAnnotation data={dummyCodeBlocks} />
       <CommentToolbar
         currentMode={commentMode}
         onModeChange={setCommentMode}
         onAddComment={handleAddComment}
-        showDialog={showCommentDialog}                // ✅ 传入是否显示
-        pendingPosition={tempPosition}                   // ✅ 传入临时位置信息
-        onCancelDialog={() => setShowCommentDialog(false)}  // ✅ 控制弹窗关闭
+        showDialog={showCommentDialog}      // ✅ 传入是否显示
+        pendingPosition={tempPosition}      // ✅ 传入临时位置信息
+        onCancelDialog={() => {
+          setShowCommentDialog(false)       // ✅ 控制弹窗关闭
+          setPreviewPosition(null); // ✅ 清除预览
+          setTempPosition(null);    // ✅ 可选：清除临时起始点
+        }}
       />
     </>
   );

@@ -2,14 +2,16 @@ import React from 'react';
 import { useSidePanel } from './SidePanelContext';
 import { usePDFMetrics } from './PDFViewer';
 import { CommentData } from '../types/annotations';
+import { CommentPosition } from './DisplayPage';
 
 interface Props {
   data: CommentData[];
   onPDFClick?: (e: React.MouseEvent) => void;
-  onMouseUp?: (e: React.MouseEvent) => void;
+  onMouseMove?: (e: React.MouseEvent) => void;
+  previewPosition?: CommentPosition | null;
 }
 
-const CommentOverlay: React.FC<Props> = ({ data: comments, onPDFClick, onMouseUp }) => {
+const CommentOverlay: React.FC<Props> = ({ data: comments, onPDFClick, onMouseMove, previewPosition }) => {
   const { openPanel } = useSidePanel();
   const pageMetrics = usePDFMetrics();
 
@@ -29,7 +31,7 @@ const CommentOverlay: React.FC<Props> = ({ data: comments, onPDFClick, onMouseUp
     <div 
       className="absolute inset-0" 
       onClick={onPDFClick}
-      onMouseUp={onMouseUp}
+      onMouseMove={onMouseMove}
     >
       {comments.map(comment => {
         const metric = pageMetrics[comment.page - 1];
@@ -98,6 +100,38 @@ const CommentOverlay: React.FC<Props> = ({ data: comments, onPDFClick, onMouseUp
 
         return null;
       })}
+
+      {previewPosition && (() => {
+        const metric = pageMetrics[previewPosition.page - 1];
+        if (!metric) return null;
+
+        if (previewPosition.type === 'highlight' && 'x1' in previewPosition && 'y1' in previewPosition && 'width' in previewPosition && 'height' in previewPosition) {
+          const left = previewPosition.x1 * metric.width;
+          const top = metric.offsetY + previewPosition.y1 * metric.height;
+          const width = previewPosition.width! * metric.width;
+          const height = previewPosition.height! * metric.height;
+          return (
+            <div
+              className="absolute bg-yellow-300 opacity-20 pointer-events-none"
+              style={{ left, top, width, height }}
+            />
+          );
+        }
+
+        if (previewPosition.type === 'underline' && 'x1' in previewPosition && 'y1' in previewPosition && 'x2' in previewPosition && 'y2' in previewPosition) {
+          const left = previewPosition.x1 * metric.width;
+          const top = metric.offsetY + previewPosition.y1 * metric.height;
+          const width = (previewPosition.x2! - previewPosition.x1!) * metric.width;
+          return (
+            <div
+              className="absolute bg-blue-500 opacity-40 pointer-events-none"
+              style={{ left, top, width, height: 2 }}
+            />
+          );
+        }
+
+        return null;
+      })()}
     </div>
   );
 };
