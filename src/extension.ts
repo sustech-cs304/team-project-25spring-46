@@ -8,7 +8,6 @@ import { exec } from 'child_process';
 import pool from './database';
 import supabase, { testSupabaseConnection } from './supabaseClient';
 import { generateAISummary, generateAIQuiz } from './AIsummarizer';
-import { activate as activateTestCommands } from './test/testComment';
 import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask} from './taskService';
 import { getProjects } from './projectService';
 import { getAllComments } from './commentService';
@@ -18,7 +17,6 @@ let currentUserId: number | null = null;
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 	// Activate comment service test
-	activateTestCommands(context);
 
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
