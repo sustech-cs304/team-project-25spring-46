@@ -1,14 +1,14 @@
 // import * as crypto from 'crypto';
-import axios from 'axios';
+// import axios from 'axios';
 import { getFileAbsolutePath} from './courseService';
 import supabase, { testSupabaseConnection } from './supabaseClient';
 import * as fs from 'fs';
 import * as util from 'util';
 const readFile = util.promisify(fs.readFile);
 
-export const Server_IP = '10.32.112.180'; //'10.28.60.68';
-export const Port = '3000';
-const API_BASE_URL = `http://${Server_IP}:${Port}`;
+// export const Server_IP = '10.32.112.180'; //'10.28.60.68';
+// export const Port = '3000';
+// const API_BASE_URL = `http://${Server_IP}:${Port}`;
 
 export interface Comment {
     id: number;
@@ -138,6 +138,8 @@ export async function hashFilePath(path: string): Promise<string> {
   }
 
 export async function addComment(data: RawCommentInput): Promise<void> {
+    testSupabaseConnection();
+    
     console.log("commentService - addComment data:", data); // 添加日志
 
     const file_id = await hashFileByContent(data.filePath);
@@ -215,6 +217,8 @@ export async function addComment(data: RawCommentInput): Promise<void> {
 }
 
 export async function deleteCommentById(commentId: number): Promise<void> {
+    testSupabaseConnection();
+    
     // try {
     //     const response = await axios.delete(`${API_BASE_URL}/comments/${commentId}`);
     //     if (response.status !== 200) {
@@ -239,6 +243,8 @@ export async function deleteCommentById(commentId: number): Promise<void> {
 }
 
 export async function deleteCommentByFile(filePath: string): Promise<void> {
+    testSupabaseConnection();
+    
     const file_id = await hashFileByContent(filePath);
     // try {
     //     const response = await axios.delete(`${API_BASE_URL}/comments/by-file/${file_id}`);
@@ -264,6 +270,8 @@ export async function deleteCommentByFile(filePath: string): Promise<void> {
 }
 
 export async function getAllComments(filePath: string): Promise<CommentData[]> {
+    testSupabaseConnection();
+    
     console.log('getAllComments: 开始获取评论, filePath =', filePath);
     const file_id = await hashFileByContent(filePath);
     // try {
@@ -309,6 +317,8 @@ export async function getAllComments(filePath: string): Promise<CommentData[]> {
 }
 
 export async function getPageComments(filePath: string, page_number:number): Promise<CommentData[]> {
+    testSupabaseConnection();
+    
     const file_id = await hashFileByContent(filePath);
     // try {
     //     const response = await axios.get(`${API_BASE_URL}/comments`, {

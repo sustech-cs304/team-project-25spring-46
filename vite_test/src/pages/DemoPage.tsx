@@ -8,7 +8,7 @@ import SidePanelContainer from './SidePanelContainer';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { CommentData, CodeSnippetData } from '../types/annotations';
 // import { getVsCodeApi } from '../vscodeApi';
-import { getAllComments } from '../../../src/commentService';
+// import { getAllComments } from '../../../src/commentService';
 
 
 // const dummyComments: CommentData[] = [
@@ -22,13 +22,14 @@ const dummyCodeBlocks: CodeSnippetData[] = [
 
 const PageLayout: React.FC = () => {
   const { openPanels } = useSidePanel();
-  const [dummyComments, setComments] = useState<CommentData[]>([]);
+  const [dummyComments, ] = useState<CommentData[]>([]);
 
   useEffect(() => {
     async function fetchComments() {
       try {
-        const result = await getAllComments('/Users/alice/test.pdf');
-        setComments(result);
+        console.log('跳过demo的获取评论');
+        // const result = await getAllComments('/Users/alice/test.pdf');
+        // setComments(result);
       } catch (err) {
         console.error('加载评论失败:', err);
       }

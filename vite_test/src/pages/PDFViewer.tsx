@@ -29,6 +29,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ filePath, children }) => {
   const [pageMetrics, setPageMetrics] = useState<PageMetrics[]>([]);
   const canvasRefs = useRef<HTMLCanvasElement[]>([]);
   const outerContainerRef = useRef<HTMLDivElement>(null);
+  const offsetCalculatedRef = useRef(false);
   const vscode = getVsCodeApi();
 
   // ——— 1. 请求并接收 Worker 路径 ———
@@ -85,6 +86,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ filePath, children }) => {
 
         if (!cancelled) {
           setPageMetrics(metrics);
+          offsetCalculatedRef.current = false; // 新设置pageMetrics，重置标记，等待计算offsetX
         }
       } catch (err) {
         console.error("PDF 加载失败:", err);
@@ -142,6 +144,33 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ filePath, children }) => {
   
     return () => window.removeEventListener("resize", updateOffsets);
   }, []);  // 避免死循环
+
+  // pageMetrics 更新时执行一次offsetX计算，避免死循环
+  useEffect(() => {
+    if (pageMetrics.length === 0) return;
+    if (offsetCalculatedRef.current) return; // 已计算过则跳过
+
+    offsetCalculatedRef.current = true; // 标记已计算
+
+    // 延迟到下一帧，确保DOM布局完成
+    requestAnimationFrame(() => {
+      if (!outerContainerRef.current) return;
+      const containerRect = outerContainerRef.current.getBoundingClientRect();
+
+      const newMetrics = pageMetrics.map((m, i) => {
+        const canvas = canvasRefs.current[i];
+        if (!canvas) return m;
+
+        const canvasRect = canvas.getBoundingClientRect();
+        const offsetX = canvasRect.left - containerRect.left;
+        console.log(`Page ${i + 1} offsetX recalculated in useEffect:`, offsetX);
+
+        return { ...m, offsetX };
+      });
+
+      setPageMetrics(newMetrics);
+    });
+  }, [pageMetrics]);
 
   if (pageMetrics.length === 0) {
     return <div className="text-center text-gray-500">Loading PDF…</div>;

@@ -7,9 +7,8 @@ import CodeAnnotation from './CodeAnnotation';
 import SidePanelContainer from './SidePanelContainer';
 import CommentToolbar, { CommentMode } from './CommentToolbar';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { CommentData, CodeSnippetData } from '../types/annotations';
+import { CommentData, CodeSnippetData, RawCommentInput } from '../types/annotations';
 import { getVsCodeApi } from '../vscodeApi';
-import { RawCommentInput } from '../../../src/commentService';
 import { usePDFMetrics } from './PDFViewer';
 
 interface DisplayPageProps {
@@ -53,7 +52,7 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
     const vscode = getVsCodeApi();
   
     const fetchComments = () => {
-      console.log('定时请求获取评论, filePath =', filePath);
+      // console.log('定时请求获取评论, filePath =', filePath);
       vscode.postMessage({
         command: 'getAllComments',
         filePath,
