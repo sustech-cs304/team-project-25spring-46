@@ -7,6 +7,7 @@ import CalendarPage from './pages/CalendarPage';
 import FilePage from './pages/FilePage';
 import DemoPage from './pages/DemoPage';
 import DisplayPage from './pages/DisplayPage';
+import ChatPage from "./pages/ChatPage";
 import { getVsCodeApi } from './vscodeApi';
 
 const vscode = getVsCodeApi();
@@ -80,6 +81,7 @@ export default function App() {
       );
       case 'CalendarPage':return <CalendarPage />;
       case 'DemoPage':    return <DemoPage />;
+      case "ChatPage": return <ChatPage />;
       default:            return <HomePage />;
     }
   };
@@ -100,6 +102,7 @@ export default function App() {
               <option value="CoursePage">课程页面</option>
               <option value="CalendarPage">日历页面</option>
               <option value="DemoPage">🧪 Demo 测试</option>
+              <option value="ChatPage">💬 聊天页面</option>
             </select>
             <button
               onClick={handleLogout}
@@ -119,7 +122,6 @@ export default function App() {
           返回课程页面
         </button>
       )}
-
       {renderPage()}
     </div>
   );

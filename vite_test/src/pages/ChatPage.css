@@ -1,0 +1,241 @@
+/* ChatPage.css */
+.chat-page {
+  display: flex;
+  height: 100vh;
+  border-radius: 15px;
+  /* Round the corners of the entire chat page */
+  overflow: hidden;
+  /* Prevents overflow when the content is rounded */
+}
+
+.chat-list {
+  width: 30%;
+  background-color: #f1f1f1;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+  box-sizing: border-box;
+
+  /* ✅ 添加以下两行即可 */
+  max-height: 100vh;
+  /* 或具体值，如 600px */
+  overflow-y: auto;
+}
+
+.search-bar {
+  margin-bottom: 15px;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.button-group {
+  margin-top: 10px;
+}
+
+.add-chat-btn {
+  padding: 8px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  width: 100%;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.chat-item {
+  padding: 10px;
+  cursor: pointer;
+  margin-bottom: 15px;
+  /* Increased margin to create more spacing between chat items */
+  border-radius: 10px;
+  /* Round the chat items */
+  background-color: #ffffff;
+}
+
+.chat-item:hover {
+  background-color: #f5f5f5;
+}
+
+.chat-content {
+  flex: 1;
+  padding: 20px;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  /* Align messages from top to bottom */
+  justify-content: flex-start;
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 20px;
+  /* Increase the radius for more rounded corners */
+  background-color: #f9f9f9;
+  max-width: 80%;
+}
+
+.message {
+  margin-bottom: 10px;
+  /* Add space between adjacent messages */
+  padding: 10px;
+  border-radius: 15px;
+  /* Rounded corners for each message */
+  background-color: #e0e0e0;
+  /* Slightly different background color for messages */
+}
+
+.my-message {
+  background-color: #d1f7d1;
+  /* Different background color for your messages */
+}
+
+.other-message {
+  background-color: #f1f1f1;
+  /* Different background color for other person's messages */
+}
+
+.message-text {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.message-time {
+  font-size: 12px;
+  color: #777;
+  margin-top: 5px;
+}
+
+/* Only show the message input on the right side */
+.message-input {
+  position: fixed;
+  bottom: 0;
+  left: 30%;
+  /* Start at 30% to make it align only on the right part */
+  width: 70%;
+  /* Take up 70% of the screen width */
+  padding: 10px;
+  background-color: white;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+}
+
+.message-input input {
+  width: 80%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.message-input button {
+  padding: 8px 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+/* Adjusted chat list item */
+.chat-item {
+  padding: 10px;
+  cursor: pointer;
+  margin-bottom: 15px;
+  border-radius: 10px;
+  background-color: #ffffff;
+}
+
+.chat-item:hover {
+  background-color: #f5f5f5;
+}
+
+/* No chat selected message */
+.no-chat-selected {
+  font-size: 18px;
+  color: #888;
+  text-align: center;
+  margin-top: 50px;
+}
+
+.friend-selection {
+  margin-top: 20px;
+}
+
+.friend-selection h4 {
+  margin-bottom: 10px;
+}
+
+.friend-selection ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.friend-selection li {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.friend-selection li.selected {
+  background-color: #007bff;
+  color: white;
+}
+
+.group-selection {
+  margin-top: 20px;
+}
+
+.group-selection h4 {
+  margin-bottom: 10px;
+}
+
+.group-selection ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.group-selection li {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.group-selection li.selected {
+  background-color: #007bff;
+  color: white;
+}
+
+
+/* Style the chat header */
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-header h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.invite-btn {
+  padding: 5px 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.invite-btn:hover {
+  background-color: #0056b3;
+}

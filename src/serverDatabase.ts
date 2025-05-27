@@ -2,7 +2,11 @@
 import { Pool } from 'pg';
 
 const pool = new Pool({
-  connectionString: 'postgres://postgres:Cookiegu12210255@localhost:5432/liveshare_data'
+  user: 'postgres',
+  password: '000000',
+  host: 'localhost',
+  port: 5432,
+  database: 'software_engineering'
 });
 
 pool
