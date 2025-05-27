@@ -12,7 +12,7 @@ type RegisterPageProps = {
 export default function RegisterPage({ onRegisterSuccess, onSwitchToLogin }: RegisterPageProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, _] = useState(''); // 密码暂时不校验
+  const [password, setPassword] = useState(''); // 密码暂时不校验
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -67,6 +67,8 @@ export default function RegisterPage({ onRegisterSuccess, onSwitchToLogin }: Reg
             <label className="block mb-1">密码</label>
             <input
               type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
               className="w-full border px-3 py-2 rounded"
               placeholder="任意输入"
               required
