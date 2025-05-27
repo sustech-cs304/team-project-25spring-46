@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import './ChatPage.css';
 import { chat } from 'vscode';
+import GroupTaskPage from './taskComponents/GroupTaskPage';
 
 // const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const API_BASE = `http://localhost:3000`;
@@ -385,6 +386,17 @@ const ChatPage: React.FC = () => {
                 </>
               )}
             </div>
+            
+            {selectedChat.type === 'group' && (
+              <div className="group-tasks-section">
+                <GroupTaskPage 
+                  groupId={parseInt(selectedChat.id)} 
+                  groupName={selectedChat.name} 
+                />
+              </div>
+            )}
+
+            
             <div className="messages">
               {/* Display messages in the selected chat */}
               {(selectedChat.messages || []).map((message, index) => (

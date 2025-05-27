@@ -9,7 +9,7 @@ import pool from './database';
 import supabase, { testSupabaseConnection } from './supabaseClient';
 import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 import { activate as activateTestCommands } from './test/testComment';
-import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask} from './taskService';
+import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask,getGroupTasks} from './taskService';
 import { getProjects } from './projectService';
 import { getAllComments } from './commentService';
 
@@ -444,6 +444,15 @@ export function activate(context: vscode.ExtensionContext) {
 					userId: currentUserId
 				});
 				break;
+				case 'getGroupTasks':
+					try {
+						const groupId = message.groupId;
+						const tasks = await getGroupTasks(groupId);
+						panel.webview.postMessage({ command: 'groupTasksData', tasks });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'error', error: error.message });
+					}
+					break;
 				default:
 				  vscode.window.showInformationMessage(`未识别的命令: ${message.command}`);
 				  console.log(`未识别的命令: ${message.command}`);

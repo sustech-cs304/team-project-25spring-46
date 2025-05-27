@@ -1,7 +1,7 @@
 // calendarPage.tsx
 import { useEffect, useState } from "react";
 import { getVsCodeApi } from "../vscodeApi";
-import TaskSidebar, { TaskFormData } from "./calendarComponents/TaskSidebar.tsx";
+import TaskSidebar, { TaskFormData } from "./taskComponents/TaskSidebar.tsx";
 
 type Task = {
   id: number;
