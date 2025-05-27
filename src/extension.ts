@@ -71,10 +71,10 @@ export function activate(context: vscode.ExtensionContext) {
 		// 插入内容安全策略（CSP）meta标签，确保允许加载需要的脚本和样式
 		const cspMetaTag = `<meta http-equiv="Content-Security-Policy" content="
 			default-src 'none';
-			img-src ${cspSource} https:;
-			script-src ${cspSource} 'unsafe-inline';
-			style-src ${cspSource} 'unsafe-inline';
-			connect-src ${cspSource} blob:;
+			img-src ${cspSource} vscode-resource: https:;
+			script-src ${cspSource} vscode-resource: 'unsafe-inline';
+			style-src ${cspSource} vscode-resource: 'unsafe-inline';
+			connect-src ${cspSource} vscode-resource: blob: http://localhost:3000;
 			worker-src ${cspSource} blob:;
 		">`;
 		htmlContent = htmlContent.replace(/<head>/, `<head>\n  ${cspMetaTag}\n`);
@@ -291,7 +291,6 @@ export function activate(context: vscode.ExtensionContext) {
 						panel.webview.postMessage({ command: 'aiError', error: error.message });
 					}
 					break;
-
 				case 'generateQuiz':
 					try {
 						const quiz = await generateAIQuiz(message.filePath);
@@ -313,7 +312,6 @@ export function activate(context: vscode.ExtensionContext) {
 						panel.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
-
 				case 'getDemoPdfPath':
 					try {
 						// const demoPdfPath = path.join(context.extensionPath, 'dist', 'assets', 'sample.pdf');
@@ -377,7 +375,6 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 					}
 					break;
-
 				// 替换 register 逻辑（message.command === 'register'）
 				case 'register':
 				try {

@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import './ChatPage.css';
 import { chat } from 'vscode';
+import { getVsCodeApi } from '../vscodeApi';
 
 // const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const API_BASE = `http://localhost:3000`;
 
 console.log('API_BASE =', API_BASE);
+
+const vscode = getVsCodeApi();
 
 // Chat type definition
 type Chat = {
@@ -34,7 +37,6 @@ type Message = {
 
 // Set the app element for modal accessibility
 Modal.setAppElement('#root');
-
 const ChatPage: React.FC = () => {
   // State variables
   const [chats, setChats] = useState<Chat[]>([]); // List of all chats
@@ -47,12 +49,13 @@ const ChatPage: React.FC = () => {
   const [newChatType, setNewChatType] = useState<'group' | 'friend' | null>(null); // Chat name for new chat
 
   // current
-  const [currentUser] = useState<User>({
-    id: '1',
-    name: 'Alan',
-    email: 'alan@gmail.com',
-    role: 'student'
-  });
+  // const [currentUser] = useState<User>({
+  //   id: '1',
+  //   name: 'Alan',
+  //   email: 'alan@gmail.com',
+  //   role: 'student'
+  // });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
 
   //selected
@@ -66,20 +69,32 @@ const ChatPage: React.FC = () => {
   const [selectedMembersForInvite, setSelectedMembersForInvite] = useState<User[]>([]); // Selected members for invitation
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false); // State for members modal
 
-  useEffect(() => {
-    fetchChats(currentUser.id);
+
+  useEffect(() => {  
+    // 获取当前用户ID
+    vscode?.postMessage({ command: 'getCurrentUserid' });
+    
+    // 获取用户列表
     fetchAllUsers();
-  }, [currentUser.id]);
+    
+    // 监听来自extension的消息
+    const handleMessage = (e: MessageEvent) => {
+      const msg = e.data;
+      if (msg.command === 'currentUseridResult' && msg.success) {
+        if (msg.userId) {
+          const user = userList.find(u => u.id === msg.userId.toString());
+          console.log(user);
+          if (user) {
+            setCurrentUser(user);
+          }
+        }
+      }
+    };
 
-  useEffect(() => {
-    console.log('userList 更新了:', userList);
-  }, [userList]);
-
-  useEffect(() => {
-    if (selectedChat) {
-      setNewMessage({ sender: currentUser, text: '', time: '' });
-    }
-  }, [selectedChat]);
+    window.addEventListener('message', handleMessage);
+    fetchChats(currentUser?.id || '');
+    return () => window.removeEventListener('message', handleMessage);
+  }, []); // 添加 userList 作为依赖
 
 
   const fetchAllUsers = async () => {
@@ -117,7 +132,7 @@ const ChatPage: React.FC = () => {
 
   const selectChat = async (chat: Chat) => {
     try {
-      let messages: any[] = [];
+      let messages:any[] = [];
 
       if (chat.type === 'group') {
         const response = await fetch(`${API_BASE}/group-messages/${chat.id}`);
@@ -128,14 +143,14 @@ const ChatPage: React.FC = () => {
           return;
         }
 
-        const response = await fetch(`${API_BASE}/friend-messages/${currentUser.id}/${chat.id}`);
+        const response = await fetch(`${API_BASE}/friend-messages/${currentUser?.id}/${chat.id}`);
         messages = await response.json();
       }
 
       const enrichedChat = {
         ...chat,
-        messages: (messages || []).map((msg: any) => ({
-          sender: { name: msg.sender_name, id: msg.sender_id, email: msg.sender_email, role: msg.sender_role } as User,
+        messages: (messages || []).map((msg:any) => ({
+          sender: { name: msg!.sender_name, id: msg.sender_id, email: msg.sender_email, role: msg.sender_role } as User,
           text: msg.text,
           time: new Date(msg.time).toLocaleTimeString().slice(0, 5)
         }))
@@ -165,13 +180,18 @@ const ChatPage: React.FC = () => {
   };
 
   const updateLocalMessage = () => {
-    if (!selectedChat) return;
+    if (!selectedChat || !currentUser) return;
 
     const now = new Date().toLocaleTimeString().slice(0, 5);
     const messageToAdd: Message = {
-      sender: currentUser,     // ✅ 是 User 类型
-      text: newMessage?.text || '',        // ✅ 是 string 类型
-      time: now                // ✅ 可考虑换成 new Date().toISOString()
+      sender: {
+        id: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.email,
+        role: currentUser.role
+      } as User,
+      text: newMessage?.text || '',
+      time: now
     };
 
     const updatedChat = {
@@ -186,7 +206,7 @@ const ChatPage: React.FC = () => {
 
 
   const sendGroupMessage = async () => {
-    if (!newMessage?.text.trim() || !selectedChat) return;
+    if (!newMessage?.text.trim() || !selectedChat || !currentUser) return;
     try {
       await fetch(`${API_BASE}/group-messages`, {
         method: 'POST',
@@ -205,7 +225,7 @@ const ChatPage: React.FC = () => {
   };
 
   const sendFriendMessage = async () => {
-    if (!newMessage?.text.trim() || !selectedChat) return;
+    if (!newMessage?.text.trim() || !selectedChat || !currentUser) return;
     try {
       await fetch(`${API_BASE}/friend-messages`, {
         method: 'POST',
@@ -238,7 +258,7 @@ const ChatPage: React.FC = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            currentUserId: currentUser.id,
+            currentUserId: currentUser?.id,
             friendId: friendId
           }),
         });
@@ -267,8 +287,8 @@ const ChatPage: React.FC = () => {
           },
           body: JSON.stringify({
             name: chatName,
-            userIds: [currentUser.id, ...selectedMemberIds].map(id => Number(id)),
-            ownerId: currentUser.id
+            userIds: [currentUser!.id, ...selectedMemberIds].map(id => Number(id)),
+            ownerId: currentUser!.id
           }),
         });
         const newChatRaw = await response.json();
@@ -437,7 +457,7 @@ const ChatPage: React.FC = () => {
               {(selectedChat.messages || []).map((message, index) => (
                 <div
                   key={index}
-                  className={`message ${message.sender.name === currentUser.name ? 'my-message' : 'other-message'}`}
+                  className={`message ${message.sender.name === currentUser?.name ? 'my-message' : 'other-message'}`}
                 >
                   <div className="message-text">{message.text}</div>
                   <div className="message-time">{message.time}</div>
