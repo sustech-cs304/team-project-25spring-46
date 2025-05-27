@@ -380,6 +380,7 @@ export function activate(context: vscode.ExtensionContext) {
 				case 'register':
 				try {
 					const { name, email, password } = message;
+					console.log('收到的注册数据：', message);
 					// 检查邮箱是否已存在
 					const { data: exist, error: checkError } = await supabase
 					.from('users')
@@ -396,8 +397,8 @@ export function activate(context: vscode.ExtensionContext) {
 					} else {
 					const { data: newUser, error: insertError } = await supabase
 						.from('users')
-						.insert({ name, email, password, role: 'student' })
-						.select('id, name, email, role')
+						.insert({ name, email, password, role: 'student'})
+						.select('id, name, email, role, password')
 						.single();
 				
 					if (insertError || !newUser) {
@@ -465,6 +466,27 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	context.subscriptions.push(disposable);
+
+	const treeView = vscode.window.createTreeView('test-combine-treeview', {
+		treeDataProvider: {
+		// 返回空数组，这样 tree 里根本没有节点
+		getChildren: () => Promise.resolve([]),
+		getTreeItem: () => { throw new Error('unused'); }
+		},
+		showCollapseAll: false
+	});
+	context.subscriptions.push(treeView);
+
+	// ③ 监听它“展开”（变 visible）的时刻
+	treeView.onDidChangeVisibility(e => {
+		if (e.visible) {
+		// 打开你的 Webview
+		vscode.commands.executeCommand('test-combine.openWebview').then(() => {
+			// 然后把侧边栏切回 Explorer，这样真正看不见那个空空的 treeview
+			vscode.commands.executeCommand('workbench.view.explorer');
+		});
+		}
+	});
 }
 
 function getCatWebviewContent() {

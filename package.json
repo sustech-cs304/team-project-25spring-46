@@ -31,6 +31,29 @@
         "command": "commentTester.testDelete",
         "title": "测试删除评论"
       }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "test-combine-sidebar",
+          "title": "Course IDE",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "test-combine-sidebar": [
+        {
+          "id": "test-combine-treeview",
+          "name": "⚡ Open Webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "test-combine.openWebview",
+        "title": "Open Webview"
+      }
     ]
   },
   "scripts": {
