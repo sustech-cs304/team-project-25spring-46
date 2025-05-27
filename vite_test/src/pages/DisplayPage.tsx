@@ -307,7 +307,7 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
 
   // 判断侧边栏
   const hasCode = openPanels.some(p => p.type === 'code');
-  const left = hasCode ? 60 : 70;
+  const left = hasCode ? 70 : 80;
   const right = 100 - left;
 
   const renderContent = () => (
