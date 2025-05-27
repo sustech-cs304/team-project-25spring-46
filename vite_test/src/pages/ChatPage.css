@@ -2,8 +2,10 @@
 .chat-page {
   display: flex;
   height: 100vh;
-  border-radius: 15px; /* Round the corners of the entire chat page */
-  overflow: hidden; /* Prevents overflow when the content is rounded */
+  border-radius: 15px;
+  /* Round the corners of the entire chat page */
+  overflow: hidden;
+  /* Prevents overflow when the content is rounded */
 }
 
 .chat-list {
@@ -12,6 +14,11 @@
   padding: 10px;
   border-right: 1px solid #ddd;
   box-sizing: border-box;
+
+  /* ✅ 添加以下两行即可 */
+  max-height: 100vh;
+  /* 或具体值，如 600px */
+  overflow-y: auto;
 }
 
 .search-bar {
@@ -43,8 +50,10 @@
 .chat-item {
   padding: 10px;
   cursor: pointer;
-  margin-bottom: 15px; /* Increased margin to create more spacing between chat items */
-  border-radius: 10px; /* Round the chat items */
+  margin-bottom: 15px;
+  /* Increased margin to create more spacing between chat items */
+  border-radius: 10px;
+  /* Round the chat items */
   background-color: #ffffff;
 }
 
@@ -63,28 +72,35 @@
 
 .messages {
   display: flex;
-  flex-direction: column; /* Align messages from top to bottom */
+  flex-direction: column;
+  /* Align messages from top to bottom */
   justify-content: flex-start;
   padding: 12px;
   margin-bottom: 15px;
-  border-radius: 20px; /* Increase the radius for more rounded corners */
+  border-radius: 20px;
+  /* Increase the radius for more rounded corners */
   background-color: #f9f9f9;
   max-width: 80%;
 }
 
 .message {
-  margin-bottom: 10px; /* Add space between adjacent messages */
+  margin-bottom: 10px;
+  /* Add space between adjacent messages */
   padding: 10px;
-  border-radius: 15px; /* Rounded corners for each message */
-  background-color: #e0e0e0; /* Slightly different background color for messages */
+  border-radius: 15px;
+  /* Rounded corners for each message */
+  background-color: #e0e0e0;
+  /* Slightly different background color for messages */
 }
 
 .my-message {
-  background-color: #d1f7d1; /* Different background color for your messages */
+  background-color: #d1f7d1;
+  /* Different background color for your messages */
 }
 
 .other-message {
-  background-color: #f1f1f1; /* Different background color for other person's messages */
+  background-color: #f1f1f1;
+  /* Different background color for other person's messages */
 }
 
 .message-text {
@@ -102,8 +118,10 @@
 .message-input {
   position: fixed;
   bottom: 0;
-  left: 30%; /* Start at 30% to make it align only on the right part */
-  width: 70%; /* Take up 70% of the screen width */
+  left: 30%;
+  /* Start at 30% to make it align only on the right part */
+  width: 70%;
+  /* Take up 70% of the screen width */
   padding: 10px;
   background-color: white;
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
