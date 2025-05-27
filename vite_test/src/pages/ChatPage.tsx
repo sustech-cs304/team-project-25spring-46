@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import './ChatPage.css';
-import { chat } from 'vscode';
 import { getVsCodeApi } from '../vscodeApi';
 
 // const API_BASE = import.meta.env.VITE_API_BASE_URL;
@@ -28,12 +27,14 @@ type User = {
   role?: string;   // Optional role (e.g., 'student', 'teacher')
 };
 
-type Message = {
-  sender: User;  // sender ID (matches User.id)
-  text: string;    // message content
-  time: string;    // ISO timestamp (e.g., "2025-05-27T12:34:56Z")
-};
-
+interface Message {
+  sender_name: string;
+  sender_id: string;
+  sender_email: string;
+  sender_role: string;
+  text: string;
+  time: string;
+}
 
 // Set the app element for modal accessibility
 Modal.setAppElement('#root');
@@ -75,55 +76,116 @@ const ChatPage: React.FC = () => {
     vscode?.postMessage({ command: 'getCurrentUserid' });
     
     // 获取用户列表
-    fetchAllUsers();
+    vscode?.postMessage({ command: 'getUsers' });
     
     // 监听来自extension的消息
     const handleMessage = (e: MessageEvent) => {
       const msg = e.data;
-      if (msg.command === 'currentUseridResult' && msg.success) {
-        if (msg.userId) {
-          const user = userList.find(u => u.id === msg.userId.toString());
-          console.log(user);
-          if (user) {
-            setCurrentUser(user);
+      switch (msg.command) {
+        case 'currentUseridResult':
+          if (msg.success && msg.userId) {
+            const user = userList.find(u => u.id === msg.userId.toString());
+            if (user) {
+              setCurrentUser(user);
+            }
           }
-        }
+          break;
+        case 'getUsersResult':
+          if (msg.success) {
+            setUserList(msg.users);
+          }
+          break;
+        case 'getGroupListResult':
+          if (msg.success) {
+            setChats(prevChats => {
+              const friendChats = prevChats.filter(chat => chat.type === 'friend');
+              return [...friendChats, ...msg.groups];
+            });
+          }
+          break;
+        case 'getFriendsListResult':
+          if (msg.success) {
+            setChats(prevChats => {
+              const groupChats = prevChats.filter(chat => chat.type === 'group');
+              return [...groupChats, ...msg.friends];
+            });
+          }
+          break;
+        case 'getGroupMessagesResult':
+          if (msg.success && selectedChat) {
+            const enrichedChat = {
+              ...selectedChat,
+              messages: msg.messages.map((msg: Message) => ({
+                sender: { 
+                  name: msg.sender_name, 
+                  id: msg.sender_id, 
+                  email: msg.sender_email, 
+                  role: msg.sender_role 
+                } as User,
+                text: msg.text,
+                time: new Date(msg.time).toLocaleTimeString().slice(0, 5)
+              }))
+            };
+            setSelectedChat(enrichedChat);
+          }
+          break;
+        case 'getFriendMessagesResult':
+          if (msg.success && selectedChat) {
+            const enrichedChat = {
+              ...selectedChat,
+              messages: msg.messages.map((msg: Message) => ({
+                sender: { 
+                  name: msg.sender_name, 
+                  id: msg.sender_id, 
+                  email: msg.sender_email, 
+                  role: msg.sender_role 
+                } as User,
+                text: msg.text,
+                time: new Date(msg.time).toLocaleTimeString().slice(0, 5)
+              }))
+            };
+            setSelectedChat(enrichedChat);
+          }
+          break;
+        case 'newFriendResult':
+          if (msg.success) {
+            setChats(prevChats => [...prevChats, msg.friend]);
+            setSelectedChat(msg.friend);
+            setIsModalOpen(false);
+          }
+          break;
+        case 'createGroupResult':
+          if (msg.success) {
+            setChats(prevChats => [...prevChats, msg.group]);
+            setSelectedChat(msg.group);
+            setIsModalOpen(false);
+          }
+          break;
+        case 'sendGroupMessageResult':
+        case 'sendFriendsMessageResult':
+          if (msg.success) {
+            // 消息发送成功，本地状态已经在 updateLocalMessage 中更新
+          }
+          break;
       }
     };
 
     window.addEventListener('message', handleMessage);
-    fetchChats(currentUser?.id || '');
     return () => window.removeEventListener('message', handleMessage);
-  }, []); // 添加 userList 作为依赖
+  }, [userList]); // 添加 userList 作为依赖
 
-
-  const fetchAllUsers = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/users`);
-      const data = await response.json();
-      setUserList(data.map((u: User) => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        role: u.role
-      })));
-      console.log('userList: ', userList)
-    } catch (error) {
-      console.error('获取用户列表失败:', error);
+  // 在组件挂载时获取聊天列表
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchChats(currentUser.id);
     }
-  };
+  }, [currentUser?.id]);
 
   const fetchChats = async (userId: string) => {
     try {
-      const [groupResp, friendResp] = await Promise.all([
-        fetch(`${API_BASE}/group-chats/${userId}`),
-        fetch(`${API_BASE}/friend-chats/${userId}`)
-      ]);
-
-      const groupChats = await groupResp.json();
-      const friendChats = await friendResp.json();
-
-      setChats([...groupChats, ...friendChats]); // 合并群聊和好友聊天
+      // 使用 extension commands 获取群聊和好友列表
+      vscode?.postMessage({ command: 'getGroupList', userId });
+      vscode?.postMessage({ command: 'getFriendsList', userId });
     } catch (error) {
       console.error('获取聊天列表失败:', error);
     }
@@ -132,31 +194,19 @@ const ChatPage: React.FC = () => {
 
   const selectChat = async (chat: Chat) => {
     try {
-      let messages:any[] = [];
-
       if (chat.type === 'group') {
-        const response = await fetch(`${API_BASE}/group-messages/${chat.id}`);
-        messages = await response.json();
+        vscode?.postMessage({ command: 'getGroupMessages', groupId: chat.id });
       } else {
         if (!chat.id) {
           console.error('没有选中的好友 ID');
           return;
         }
-
-        const response = await fetch(`${API_BASE}/friend-messages/${currentUser?.id}/${chat.id}`);
-        messages = await response.json();
+        vscode?.postMessage({ 
+          command: 'getFriendMessages', 
+          userId: currentUser?.id, 
+          friendId: chat.id 
+        });
       }
-
-      const enrichedChat = {
-        ...chat,
-        messages: (messages || []).map((msg:any) => ({
-          sender: { name: msg!.sender_name, id: msg.sender_id, email: msg.sender_email, role: msg.sender_role } as User,
-          text: msg.text,
-          time: new Date(msg.time).toLocaleTimeString().slice(0, 5)
-        }))
-      };
-
-      setSelectedChat(enrichedChat);
     } catch (e) {
       if (!chat.id) {
         console.error('获取消息失败:', e);
@@ -180,17 +230,15 @@ const ChatPage: React.FC = () => {
   };
 
   const updateLocalMessage = () => {
-    if (!selectedChat || !currentUser) return;
+    if (!currentUser || !newMessage?.text.trim() || !selectedChat) return;
 
     const now = new Date().toLocaleTimeString().slice(0, 5);
     const messageToAdd: Message = {
-      sender: {
-        id: currentUser.id,
-        name: currentUser.name,
-        email: currentUser.email,
-        role: currentUser.role
-      } as User,
-      text: newMessage?.text || '',
+      sender_name: currentUser.name || '',
+      sender_id: currentUser.id || '',
+      sender_email: currentUser.email || '',
+      sender_role: currentUser.role || '',
+      text: newMessage.text,
       time: now
     };
 
@@ -199,25 +247,20 @@ const ChatPage: React.FC = () => {
       messages: [...(selectedChat.messages || []), messageToAdd]
     };
 
-    setChats(chats.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
     setSelectedChat(updatedChat);
-    setNewMessage(null); // ✅ 清空输入
+    setNewMessage(null); // Reset to null instead of empty object
   };
 
 
   const sendGroupMessage = async () => {
     if (!newMessage?.text.trim() || !selectedChat || !currentUser) return;
     try {
-      await fetch(`${API_BASE}/group-messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          group_id: selectedChat.id,
-          sender: parseInt(currentUser.id),
-          text: newMessage.text
-        })
+      vscode?.postMessage({
+        command: 'sendGroupMessage',
+        group_id: selectedChat.id,
+        sender: parseInt(currentUser.id),
+        text: newMessage.text
       });
-
       updateLocalMessage();
     } catch (error) {
       console.error('发送群聊消息失败:', error);
@@ -227,16 +270,12 @@ const ChatPage: React.FC = () => {
   const sendFriendMessage = async () => {
     if (!newMessage?.text.trim() || !selectedChat || !currentUser) return;
     try {
-      await fetch(`${API_BASE}/friend-messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sender: parseInt(currentUser.id),
-          receiver: parseInt(selectedFriend!.id),
-          text: newMessage.text
-        })
+      vscode?.postMessage({
+        command: 'sendFriendsMessage',
+        sender: parseInt(currentUser.id),
+        receiver: parseInt(selectedFriend!.id),
+        text: newMessage.text
       });
-
       updateLocalMessage();
     } catch (error) {
       console.error('发送好友消息失败:', error);
@@ -248,25 +287,11 @@ const ChatPage: React.FC = () => {
   const createFriendChat = async () => {
     if (selectedFriend) {
       try {
-        // 在实际应用中，你需要有一个从用户名到用户ID的映射
-        // 这里简化处理，假设 selectedFriend 是用户名，需要查询对应的ID
-        const friendId = selectedFriend.id;
-
-        const response = await fetch(`${API_BASE}/createFriend`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            currentUserId: currentUser?.id,
-            friendId: friendId
-          }),
+        vscode?.postMessage({
+          command: 'newFriend',
+          currentUserId: currentUser?.id,
+          friendId: selectedFriend.id
         });
-
-        const newChat = await response.json();
-        setChats([...chats, newChat]);
-        setSelectedChat(newChat);
-        setIsModalOpen(false);
       } catch (error) {
         console.error('创建好友聊天失败:', error);
       }
@@ -277,34 +302,13 @@ const ChatPage: React.FC = () => {
   const createGroupChat = async (chatName: string) => {
     if (selectedMembers.length > 0) {
       try {
-        // 将选中的用户名转换为用户ID
         const selectedMemberIds = selectedMembers.map(member => member.id);
-
-        const response = await fetch(`${API_BASE}/createGroup`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: chatName,
-            userIds: [currentUser!.id, ...selectedMemberIds].map(id => Number(id)),
-            ownerId: currentUser!.id
-          }),
+        vscode?.postMessage({
+          command: 'createGroup',
+          name: chatName,
+          userIds: [currentUser!.id, ...selectedMemberIds].map(id => Number(id)),
+          ownerId: currentUser!.id
         });
-        const newChatRaw = await response.json();
-
-        const memberUsers = userList.filter(user =>
-          newChatRaw.members.includes(user.id)
-        );
-        
-        const newChat = {
-          ...newChatRaw,
-          members: memberUsers
-        };
-        
-        setChats([...chats, newChat]);
-        setSelectedChat(newChat);
-        setIsModalOpen(false);
       } catch (error) {
         console.error('创建群聊失败:', error);
       }
@@ -411,6 +415,23 @@ const ChatPage: React.FC = () => {
     setIsMembersModalOpen(false);
   };
 
+  const renderMessages = () => {
+    if (!selectedChat?.messages) return null;
+
+    return selectedChat.messages.map((message: Message, index: number) => (
+      <div
+        key={index}
+        className={`message ${message.sender_id === currentUser?.id ? 'sent' : 'received'}`}
+      >
+        <div className="message-content">
+          <div className="message-sender">{message.sender_name}</div>
+          <div className="message-text">{message.text}</div>
+          <div className="message-time">{message.time}</div>
+        </div>
+      </div>
+    ));
+  };
+
   return (
     <div className="chat-page">
       {/* Left side: Chat list */}
@@ -454,15 +475,7 @@ const ChatPage: React.FC = () => {
             </div>
             <div className="messages">
               {/* Display messages in the selected chat */}
-              {(selectedChat.messages || []).map((message, index) => (
-                <div
-                  key={index}
-                  className={`message ${message.sender.name === currentUser?.name ? 'my-message' : 'other-message'}`}
-                >
-                  <div className="message-text">{message.text}</div>
-                  <div className="message-time">{message.time}</div>
-                </div>
-              ))}
+              {renderMessages()}
             </div>
             {/* Message input field */}
             <div className="message-input">
