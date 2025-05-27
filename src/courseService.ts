@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import pool from './database';
 import * as vscode from 'vscode';
-import { pathToFileURL } from 'url';
+
 /**
  * 创建新课程：
  * - 在指定父文件夹下以 courseName 为名称创建一个新文件夹，

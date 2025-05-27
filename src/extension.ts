@@ -10,7 +10,7 @@ import supabase, { testSupabaseConnection } from './supabaseClient';
 import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask} from './taskService';
 import { getProjects } from './projectService';
-import { getAllComments } from './commentService';
+import { addComment, deleteCommentById, getAllComments } from './commentService';
 
 let currentUserId: number | null = null;
 // This method is called when your extension is activated
@@ -91,6 +91,18 @@ export function activate(context: vscode.ExtensionContext) {
 		panel.webview.onDidReceiveMessage(
 			async message => {
 			  switch (message.command) {
+				case 'addComment':
+					try {
+						console.log("Extension - addComment message.data:", message.data); // 添加日志
+						const { filePath, comment } = message.data;
+						console.log("Extension - addComment filePath:", filePath); // 添加日志
+						console.log("Extension - addComment comment:", comment); // 添加日志
+						const result = await addComment(comment);
+						panel.webview.postMessage({ command: 'addCommentResult', success: true, data: result });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'addCommentResult', success: false, error: error.message });
+					}
+					break;
 				case 'createCourse':
 					try {
 						// 使用 VS Code API 获取用户输入的课程名
@@ -194,6 +206,26 @@ export function activate(context: vscode.ExtensionContext) {
 						panel.webview.postMessage({ command: 'deleteTaskResult', success: true, taskId });
 					} catch (error: any) {
 						panel.webview.postMessage({ command: 'deleteTaskResult', success: false, error: error.message });
+					}
+					break;
+				case 'deleteComments':
+					try {
+						console.log('Start to delete Comment ', message.id);
+						const commentIdStr = message.id;
+						if (!commentIdStr) {
+							panel.webview.postMessage({ command: 'deleteCommentsError', error: '未提供所需删除的评论 ID' });
+							return;
+						}
+						const commentId = Number(commentIdStr); // 将 string 转为 number
+						if (isNaN(commentId)) {
+							panel.webview.postMessage({ command: 'deleteCommentsError', id: commentIdStr, error: '评论 ID 不是有效的数字' });
+							return;
+						}
+						await deleteCommentById(commentId);
+						console.log('Successfully delete the comment');
+						panel.webview.postMessage({ command: 'deleteCommentsSuccess', id: commentIdStr });
+					} catch (error: any) {
+						panel.webview.postMessage({ command: 'deleteCommentsError', id: message.id, error: error.message });
 					}
 					break;
 				case 'getCourseFiles':

@@ -62,3 +62,6 @@ app.delete('/comments/:id', async (req, res) => {
 app.listen(3000, '10.32.112.180', () => {
   console.log('评论服务运行于 http://10.32.112.180:3000');
 });
+// app.listen(3000, '10.28.60.68', () => {
+//   console.log('评论服务运行于 http://10.28.60.68:3000');
+// });

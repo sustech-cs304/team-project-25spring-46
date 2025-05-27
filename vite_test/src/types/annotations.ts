@@ -51,4 +51,18 @@ export interface CodeSnippetData {
         height: number;
     };
 }
-  
+
+export interface RawCommentInput {
+  filePath: string;
+  page?: number;
+  x1?: number;
+  y1?: number;
+  x2?: number;
+  y2?: number;
+  height?: number;
+  width?: number;
+  type?: 'text' | 'highlight' | 'underline';
+  content?: string;
+  extra?: Record<string, unknown>;
+  author?: string;
+}

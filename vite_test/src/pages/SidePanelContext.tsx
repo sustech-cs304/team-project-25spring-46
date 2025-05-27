@@ -47,6 +47,7 @@ export const SidePanelProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   // 关闭面板函数：按ID移除
   const closePanel = (id: string) => {
+    console.log('closePanel', id);
     setOpenPanels(prev => prev.filter(p => p.id !== id));
   };
 
