@@ -50,12 +50,21 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
 
   // 获取评论
   useEffect(() => {
-    console.log('PageLayout: 请求获取评论, filePath =', filePath);
     const vscode = getVsCodeApi();
-    vscode.postMessage({
-      command: 'getAllComments',
-      filePath,
-    });
+  
+    const fetchComments = () => {
+      console.log('定时请求获取评论, filePath =', filePath);
+      vscode.postMessage({
+        command: 'getAllComments',
+        filePath,
+      });
+    };
+  
+    fetchComments(); // 组件加载时立即请求一次
+  
+    const intervalId = setInterval(fetchComments, 3000); // 每3秒请求一次，可以根据需要调整时间
+  
+    return () => clearInterval(intervalId); // 组件卸载时清理定时器
   }, [filePath]);
  
   useEffect(() => {

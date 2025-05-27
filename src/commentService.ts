@@ -1,7 +1,9 @@
 // import * as crypto from 'crypto';
-// import * as vscode from 'vscode';
 import axios from 'axios';
-// import { CommentData } from '../vite_test/src/types/annotations';
+import { getFileAbsolutePath} from './courseService';
+import * as fs from 'fs';
+import * as util from 'util';
+const readFile = util.promisify(fs.readFile);
 
 export const Server_IP = '10.32.112.180'; //'10.28.60.68';
 export const Port = '3000';
@@ -103,6 +105,27 @@ export function parsePosition(posStr: string | null | undefined): { x: number, y
 //     return crypto.createHash('sha256').update(filePath).digest('hex');
 // }
 
+export async function hashFileByContent(filePath: string): Promise<string> {
+    try {
+        const absolutePath = await getFileAbsolutePath(filePath);
+		console.log("File's Absolute Path is: "+absolutePath);
+
+        const fileBuffer = await readFile(absolutePath);
+
+        // 计算SHA-256 hash
+        // const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength));
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        console.log('file content hash, path:', filePath, 'hash:', hashHex);
+        return hashHex;
+    } catch (err) {
+        console.log('hashFileByContent失败:', err)
+        console.error('hashFileByContent失败:', err);
+        throw err;
+    }
+}
+
 export async function hashFilePath(path: string): Promise<string> {
     const encoder = new TextEncoder();
     const data = encoder.encode(path);
@@ -116,7 +139,7 @@ export async function hashFilePath(path: string): Promise<string> {
 export async function addComment(data: RawCommentInput): Promise<void> {
     console.log("commentService - addComment data:", data); // 添加日志
 
-    const file_id = await hashFilePath(data.filePath);
+    const file_id = await hashFileByContent(data.filePath);
 
     // 构建 position
     let positionObj: any = {};
@@ -186,7 +209,7 @@ export async function deleteCommentById(commentId: number): Promise<void> {
 }
 
 export async function deleteCommentByFile(filePath: string): Promise<void> {
-    const file_id = await hashFilePath(filePath);
+    const file_id = await hashFileByContent(filePath);
     try {
         const response = await axios.delete(`${API_BASE_URL}/comments/by-file/${file_id}`);
         if (response.status !== 200) {
@@ -200,7 +223,7 @@ export async function deleteCommentByFile(filePath: string): Promise<void> {
 
 export async function getAllComments(filePath: string): Promise<CommentData[]> {
     console.log('getAllComments: 开始获取评论, filePath =', filePath);
-    const file_id = await hashFilePath(filePath);
+    const file_id = await hashFileByContent(filePath);
     try {
         const response = await axios.get(`${API_BASE_URL}/comments`, {
             params: { file_id }
@@ -222,7 +245,7 @@ export async function getAllComments(filePath: string): Promise<CommentData[]> {
 }
 
 export async function getPageComments(filePath: string, page_number:number): Promise<CommentData[]> {
-    const file_id = await hashFilePath(filePath);
+    const file_id = await hashFileByContent(filePath);
     try {
         const response = await axios.get(`${API_BASE_URL}/comments`, {
             params: { file_id, page: page_number }
