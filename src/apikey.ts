@@ -1,3 +1,3 @@
-const apiKey = 'sk-P7BLm3ijoBfAONHc3zMpxtAX0gveozSPefHPCryRVUBmX1kj';
+const apiKey = 'sk-qfZvIvuonWNbHyc2zp0HB4XRY44gCUAOU1W06rIhfldGia04';
 
 export default apiKey;

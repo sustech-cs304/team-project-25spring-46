@@ -1,88 +1,85 @@
+// vite_test/src/pages/filePageComponents/QuizBlock.tsx
 import { useState } from 'react';
 
 interface Quiz {
-    question: string;
-    options?: string[];
-    answer: string;
-    explanation: string;
+  question: string;
+  options?: string[];
+  answer: string;
+  explanation: string;
 }
-
-interface QuizBlockProps {
-    quizList: Quiz[];
-}
+interface QuizBlockProps { quizList: Quiz[]; }
 
 export function QuizBlock({ quizList }: QuizBlockProps) {
-    const [userAnswers, setUserAnswers] = useState<(string | undefined)[]>(
-        Array(quizList.length).fill(undefined)
-    );
-    const [results, setResults] = useState<(boolean | null)[]>(
-        Array(quizList.length).fill(null)
-    );
+  const [userAnswers, setUserAnswers] = useState<(string | undefined)[]>(
+    Array(quizList.length).fill(undefined)
+  );
+  const [results, setResults] = useState<(boolean | null)[]>(
+    Array(quizList.length).fill(null)
+  );
 
-    const handleChange = (idx: number, value: string) => {
-        const arr = [...userAnswers];
-        arr[idx] = value;
-        setUserAnswers(arr);
-    };
+  const onChange = (i: number, v: string) => {
+    const a = [...userAnswers]; a[i] = v; setUserAnswers(a);
+  };
 
-    const handleSubmit = () => {
-        const res = quizList.map((q, idx) => {
-            if (!userAnswers[idx]) return null;
-            return userAnswers[idx]?.trim().toLowerCase() === q.answer.trim().toLowerCase();
-        });
-        setResults(res);
-    };
+  const onSubmit = () => {
+    const res = quizList.map((q, i) => {
+      const ua = userAnswers[i];
+      if (!ua) return null;
 
-    return (
-        <div>
-            {quizList.map((q, idx) => (
-                <div key={idx} className="mb-6 p-4 bg-gray-50 rounded">
-                    <div className="font-bold mb-2">
-                        {idx + 1}. {q.question}
-                    </div>
-                    {q.options ? (
-                        <div>
-                            {q.options.map((opt, i) => (
-                                <label key={i} className="block">
-                                    <input
-                                        type="radio"
-                                        name={`quiz_${idx}`}
-                                        value={opt}
-                                        checked={userAnswers[idx] === opt}
-                                        onChange={() => handleChange(idx, opt)}
-                                    />{" "}
-                                    {opt}
-                                </label>
-                            ))}
-                        </div>
-                    ) : (
-                        <input
-                            type="text"
-                            className="border rounded p-1 mt-2"
-                            value={userAnswers[idx] || ""}
-                            onChange={(e) => handleChange(idx, e.target.value)}
-                            placeholder="请输入答案"
-                        />
-                    )}
-                    {results[idx] !== null && (
-                        <div
-                            className={`mt-2 ${
-                                results[idx] ? "text-green-600" : "text-red-600"
-                            }`}
-                        >
-                            {results[idx]
-                                ? `✅ 正确！解析：${q.explanation}`
-                                : `❌ 错误，正确答案是：${q.answer}。解析：${q.explanation}`}
-                        </div>
-                    )}
-                </div>
-            ))}
-            <button
-                className="bg-blue-500 text-white px-4 py-2 rounded"
-                onClick={handleSubmit}
-            >
-                提交答案
-            </button>
+      if (q.options) {
+        const sel = ua.split('.')[0].trim().toLowerCase();
+        const ans = q.answer.trim().toLowerCase();
+        return sel === ans;
+      }
+      return ua.trim().toLowerCase() === q.answer.trim().toLowerCase();
+    });
+    setResults(res);
+  };
+
+  return (
+    <div className="prose prose-lg text-gray-900 max-w-none">
+      {quizList.map((q, i) => (
+        <div key={i} className="mb-6 p-4 bg-white rounded-lg shadow">
+          <div className="text-lg font-semibold mb-2">
+            {i + 1}. {q.question}
+          </div>
+          {q.options ? (
+            <div className="space-y-2">
+              {q.options.map((opt, j) => (
+                <label key={j} className="flex items-center text-base">
+                  <input
+                    type="radio"
+                    name={`q${i}`}
+                    value={opt}
+                    checked={userAnswers[i] === opt}
+                    onChange={() => onChange(i, opt)}
+                    className="mr-2"
+                  />
+                  {opt}
+                </label>
+              ))}
+            </div>
+          ) : (
+            <input
+              type="text"
+              className="border rounded p-2 mt-2 w-full"
+              value={userAnswers[i] ?? ''}
+              onChange={e => onChange(i, e.target.value)}
+              placeholder="请输入答案"
+            />
+          )}
+          {results[i] !== null && (
+            <div className={`mt-2 ${results[i] ? 'text-green-600' : 'text-red-600'}`}>
+              {results[i]
+                ? `✅ 正确！解析：${q.explanation}`
+                : `❌ 错误，正确答案是 ${q.answer}。解析：${q.explanation}`}
+            </div>
+          )}
         </div>
-    );
-} 
+      ))}
+      <button onClick={onSubmit} className="bg-blue-500 text-white px-4 py-2 rounded">
+        提交答案
+      </button>
+    </div>
+  );
+}

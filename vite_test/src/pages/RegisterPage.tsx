@@ -70,7 +70,7 @@ export default function RegisterPage({ onRegisterSuccess, onSwitchToLogin }: Reg
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full border px-3 py-2 rounded"
-              placeholder="任意输入"
+              placeholder="请输入密码"
               required
             />
           </div>

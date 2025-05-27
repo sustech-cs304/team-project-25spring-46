@@ -86,6 +86,7 @@
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "markdown-it": "^14.1.0",
     "pdf-parse": "^1.1.1",
     "pdf2image": "^1.2.3",
     "pdfjs-dist": "^5.2.133",
@@ -93,6 +94,7 @@
     "pg-protocol": "^1.9.5",
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^15.6.1",
+    "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1"
   }
 }

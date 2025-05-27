@@ -289,6 +289,39 @@ export function activate(context: vscode.ExtensionContext) {
 						panel.webview.postMessage({ command: 'aiError', error: error.message });
 					}
 					break;
+
+				case 'generateSummaryAndSave':
+					try {
+						// 1. 调用 LLM 生成 Markdown 文本
+						const summaryMd = await generateAISummary(message.filePath);
+
+						// 2. 拿到 PDF 的绝对路径
+						const absPdf = await getFileAbsolutePath(message.filePath);
+						const dir    = path.dirname(absPdf);
+						const name   = path.parse(absPdf).name;
+						const mdPath = path.join(dir, `${name}.md`);
+
+						// 3. 写入 .md 文件
+						await fs.promises.writeFile(mdPath, summaryMd, 'utf8');
+
+						// 4. 在编辑器中打开它
+						const doc = await vscode.workspace.openTextDocument(mdPath);
+						await vscode.window.showTextDocument(doc);
+
+						// 5. 通知前端
+						panel.webview.postMessage({
+						command: 'saveSummaryResult',
+						success: true,
+						mdPath
+						});
+					} catch (err: any) {
+						panel.webview.postMessage({
+						command: 'saveSummaryResult',
+						success: false,
+						error: err.message
+						});
+					}
+					break;
 			
 				case 'generateQuiz':
 					try {

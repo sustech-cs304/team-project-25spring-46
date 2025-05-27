@@ -6,7 +6,7 @@ import pool from './database';
 import path from 'path';
 import apiKey from './apikey';
 
-const endpoint = 'https://api5.xhub.chat/v1/chat/completions';
+const endpoint = 'https://sg.uiuiapi.com/v1/chat/completions';
 
 async function extractPDFText(filePath: string): Promise<string> {
   const dataBuffer = fs.readFileSync(filePath);
@@ -15,8 +15,9 @@ async function extractPDFText(filePath: string): Promise<string> {
 }
 
 async function queryLLM(prompt: string): Promise<string> {
+  console.log(`Querying LLM with prompt: ${prompt}`);
   const response = await axios.post(endpoint, {
-    model: 'gpt-3.5-turbo-0125',
+    model: 'gpt-4o',
     messages: [
       { role: 'system', content: '你是一个有帮助的助手。' },
       { role: 'user', content: prompt }
@@ -25,22 +26,34 @@ async function queryLLM(prompt: string): Promise<string> {
   }, {
     headers: { Authorization: `Bearer ${apiKey}` }
   });
+  console.log(`LLM response: ${response.data.choices[0].message.content.trim()}`);
   return response.data.choices[0].message.content.trim();
 }
 
 export async function generateAISummary(relativePath: string): Promise<string> {
+  console.log(`Generating summary for: ${relativePath}`);
   const absolutePath = await getAbsolutePath(relativePath);
   const pdfText = await extractPDFText(absolutePath);
-  const prompt = `请逐页解析以下课件内容，总结要点为Markdown笔记：${pdfText}`;
-  return queryLLM(prompt);
+  const prompt = `请逐页解析以下课件内容，总结要点为Markdown笔记：${pdfText}。请只返回Markdown格式的内容，不要包含其他文字。`;
+  const result = await queryLLM(prompt);
+  return result;
 }
 
-export async function generateAIQuiz(relativePath: string): Promise<any[]> {
+export async function generateAIQuiz(relativePath: string): Promise<string> {
   const absolutePath = await getAbsolutePath(relativePath);
   const pdfText = await extractPDFText(absolutePath);
-  const prompt = `根据课件内容生成5道测试题JSON格式：${pdfText}`;
+  const prompt = `请根据以下课件内容，出 5 道 quiz（可以是选择题或填空题），用 JSON 数组格式返回，每题应包含：题干、选项（如有）、参考答案、解析。例如：
+[
+  {
+    "question": "xxx?",
+    "options": ["A.xxx", "B.xxx", "C.xxx"],
+    "answer": "B",
+    "explanation": "正确答案是 B，因为..."
+  }
+]
+以下是课件内容：${pdfText}。请只返回json数据，不要包含其他文字。`;
   const result = await queryLLM(prompt);
-  return JSON.parse(result.match(/\[.*\]/s)?.[0] || '[]');
+  return result;
 }
 
 async function getAbsolutePath(relativePath: string): Promise<string> {

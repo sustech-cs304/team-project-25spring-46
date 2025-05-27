@@ -81,7 +81,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onSwitchToRegiste
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full border px-3 py-2 rounded"
-              placeholder="（任意输入均可）"
+              placeholder="请输入密码"
               required
             />
           </div>
