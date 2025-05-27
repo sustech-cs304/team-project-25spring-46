@@ -17,6 +17,9 @@ let currentUserId: number | null = null;
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+	// Restore currentUserId from persistent storage
+	currentUserId = context.globalState.get('currentUserId') || null;
+
 	// Activate comment service test
 	activateTestCommands(context);
 
@@ -355,6 +358,8 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 						} else {
 						currentUserId = data.id;
+						// Store currentUserId in persistent storage
+						await context.globalState.update('currentUserId', currentUserId);
 						panel.webview.postMessage({
 							command: 'loginResult',
 							success: true,
@@ -427,6 +432,8 @@ export function activate(context: vscode.ExtensionContext) {
 				// —— 注销 ——
 				case 'logout':
 				currentUserId = null;
+				// Clear currentUserId from persistent storage
+				await context.globalState.update('currentUserId', null);
 				panel.webview.postMessage({
 					command: 'logoutResult',
 					success: true
@@ -441,6 +448,7 @@ export function activate(context: vscode.ExtensionContext) {
 					userId: currentUserId
 				});
 				break;
+				//获取所有好友，用于添加好友
 				case 'getUsers':
 					try {
 						const { data, error } = await supabase
@@ -469,6 +477,7 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 					}
 					break;
+				//删除好友关系
 				case 'deleteUser':
 					try {
 						const userId = parseInt(message.userId);
@@ -569,6 +578,7 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 					}
 					break;
+				//添加好友
 				case 'newFriend':
 					try {
 						const { currentUserId, friendId } = message;
@@ -635,6 +645,7 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 					}
 					break;
+				//获取该用户所有群聊
 				case 'getGroupList':
 					try {
 						const userId = message.userId;
@@ -690,6 +701,7 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 					}
 					break;
+				//创建群聊
 				case 'createGroup':
 					try {
 						const { name, userIds, ownerId } = message;
@@ -774,6 +786,7 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 					}
 					break;
+				//获取私聊好友消息
 				case 'getFriendMessages':
 					try {
 						const { userId, friendId } = message;
@@ -830,6 +843,7 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 					}
 					break;
+				//发送私聊消息
 				case 'sendFriendsMessage':
 					try {
 						const { sender, receiver, text } = message;
@@ -873,6 +887,7 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 					}
 					break;
+				//获取群聊消息
 				case 'getGroupMessages':
 					try {
 						const { groupId } = message;
@@ -928,6 +943,7 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 					}
 					break;
+				//发送群聊消息
 				case 'sendGroupMessage':
 					try {
 						const { group_id, sender, text } = message;
