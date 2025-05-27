@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import './ChatPage.css';
 import { getVsCodeApi } from '../vscodeApi';
-import GroupTaskPage from './taskComponents/GroupTaskPage';
 
 const vscode = getVsCodeApi();
 
@@ -49,14 +48,14 @@ const ChatPage: React.FC = () => {
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [groupName, setGroupName] = useState('');
 
-  // Load initial data
   useEffect(() => {
-    // Get current user ID
+    // 初始化加载用户 ID 和用户列表
     vscode?.postMessage({ command: 'getCurrentUserid' });
-
-    // Get all users
     vscode?.postMessage({ command: 'getUsers' });
+  }, []); // 只在初次加载时运行
 
+  useEffect(() => {
+    // 监听 message 事件处理各种结果
     const handleMessage = (e: MessageEvent) => {
       const msg = e.data;
 
@@ -64,7 +63,6 @@ const ChatPage: React.FC = () => {
         case 'currentUseridResult':
           if (msg.success && msg.userId) {
             setCurrentUserId(msg.userId.toString());
-            // Load user's chats
             loadUserChats(msg.userId.toString());
           }
           setIsLoading(false);
@@ -120,7 +118,6 @@ const ChatPage: React.FC = () => {
         case 'sendFriendsMessageResult':
         case 'sendGroupMessageResult':
           if (msg.success) {
-            // Refresh messages
             if (selectedChat) {
               if (selectedChat.type === 'group') {
                 vscode?.postMessage({
@@ -143,7 +140,22 @@ const ChatPage: React.FC = () => {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [userList, selectedChat, currentUserId]);
+  }, [selectedChat, currentUserId]); // 这里只监听必要项
+
+  useEffect(() => {
+    // 如果 selectedChat 改变了，主动请求消息记录
+    if (!selectedChat || !currentUserId) return;
+
+    if (selectedChat.type === 'group') {
+      vscode?.postMessage({ command: 'getGroupMessages', groupId: selectedChat.id });
+    } else {
+      vscode?.postMessage({
+        command: 'getFriendMessages',
+        userId: currentUserId,
+        friendId: selectedChat.id
+      });
+    }
+  }, [selectedChat, currentUserId]);
 
   const loadUserChats = (userId: string) => {
     vscode?.postMessage({ command: 'getFriendsList', userId });
@@ -261,17 +273,6 @@ const ChatPage: React.FC = () => {
             <div className="chat-header">
               <h3>{selectedChat.name}</h3>
             </div>
-
-            {selectedChat.type === 'group' && (
-              <div className="group-tasks-section">
-                <GroupTaskPage
-                  groupId={parseInt(selectedChat.id)}
-                  groupName={selectedChat.name}
-                />
-              </div>
-            )}
-
-
             <div className="messages">
               {selectedChat.messages?.map((message, index) => (
                 <div
