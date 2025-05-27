@@ -168,21 +168,37 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
     const toolbar = document.querySelector('.comment-toolbar');
     if (toolbar && toolbar.contains(e.target as Node)) return;
 
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    const pageIndex = pageMetrics.findIndex(metric => 
-      e.clientY >= metric.offsetY && e.clientY <= metric.offsetY + metric.height
+    // const rect = e.currentTarget.getBoundingClientRect();
+    // const x = (e.clientX - rect.left) / rect.width;
+    // const y = (e.clientY - rect.top) / rect.height;
+    // const pageIndex = pageMetrics.findIndex(metric => 
+    //   e.clientY >= metric.offsetY && e.clientY <= metric.offsetY + metric.height
+    // );
+
+    const container = e.currentTarget;
+    const rect = container.getBoundingClientRect();
+    const scrollTop = container.scrollTop;
+
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top + scrollTop; // 修正Y轴：加入scrollTop
+
+    // 使用 pageMetrics 判断点击的是哪个页面（点击位置是相对于整个容器）
+    const pageIndex = pageMetrics.findIndex(metric =>
+      clickY >= metric.offsetY && clickY <= metric.offsetY + metric.height
     );
 
     console.log('handlePDFClick: 点击事件, pageIndex =', pageIndex);
-
     if (pageIndex === -1) return;
+
+    // 使用相对于该页的坐标（像素 → 百分比）
+    const metric = pageMetrics[pageIndex]; // 定义当前页的 metric
+    const x = (clickX - metric.offsetX) / metric.width;
+    const y = (clickY - metric.offsetY) / metric.height;
 
     const basePosition: CommentPosition = {
       type: commentMode,
-      x1: x,
-      y1: y,
+      x1: parseFloat(x.toFixed(6)), // 四舍五入以压缩存储,
+      y1: parseFloat(y.toFixed(6)),
       page: pageIndex + 1
     };
 
@@ -235,9 +251,26 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
     if (commentMode === 'none' || !tempPosition) return;
     if (tempPosition.type === 'text') return;
   
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
+    // const rect = e.currentTarget.getBoundingClientRect();
+    // const x = (e.clientX - rect.left) / rect.width;
+    // const y = (e.clientY - rect.top) / rect.height;
+
+    const container = e.currentTarget;
+    const rect = container.getBoundingClientRect();
+    const scrollTop = container.scrollTop;
+
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top + scrollTop;
+
+    const pageIndex = pageMetrics.findIndex(metric =>
+      clickY >= metric.offsetY && clickY <= metric.offsetY + metric.height
+    );
+
+    // if (pageIndex === -1 || pageIndex + 1 !== tempPosition.page) return;
+
+    const metric = pageMetrics[pageIndex]; // ✅ 当前页的尺寸信息
+    const x = (clickX - metric.offsetX) / metric.width;
+    const y = (clickY - metric.offsetY) / metric.height;
   
     let newPreview: CommentPosition | null = null;
   

@@ -8,6 +8,7 @@ type PageMetrics = {
   width: number;
   height: number;
   offsetY: number;
+  offsetX: number; // 新增字段
 };
 
 interface PDFContextValue {
@@ -27,6 +28,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ filePath, children }) => {
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
   const [pageMetrics, setPageMetrics] = useState<PageMetrics[]>([]);
   const canvasRefs = useRef<HTMLCanvasElement[]>([]);
+  const outerContainerRef = useRef<HTMLDivElement>(null);
   const vscode = getVsCodeApi();
 
   // ——— 1. 请求并接收 Worker 路径 ———
@@ -75,7 +77,8 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ filePath, children }) => {
           metrics.push({
             width: viewport.width,
             height: viewport.height,
-            offsetY: cumulativeOffset
+            offsetY: cumulativeOffset,
+            offsetX: 0, // 初始化 offsetX
           });
           cumulativeOffset += viewport.height + 10;
         }
@@ -108,13 +111,48 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ filePath, children }) => {
     });
   }, [pdfDoc, pageMetrics]);
 
+  // ———— add：监听窗口resize ————
+  useEffect(() => {
+    const updateOffsets = () => {
+      if (!outerContainerRef.current) return;
+  
+      const containerRect = outerContainerRef.current.getBoundingClientRect();
+  
+      setPageMetrics((prev) => {
+        return prev.map((m, i) => {
+          const canvas = canvasRefs.current[i];
+          if (!canvas) return m;
+  
+          const canvasRect = canvas.getBoundingClientRect();
+          const offsetX = canvasRect.left - containerRect.left;
+  
+          console.log(`Page ${i + 1} offsetX relative to outer container:`, offsetX);
+  
+          return {
+            ...m,
+            offsetX,
+          };
+        });
+      });
+    };
+  
+    window.addEventListener("resize", updateOffsets);
+    // 页面加载时也触发一次，确保数据准确
+    updateOffsets();
+  
+    return () => window.removeEventListener("resize", updateOffsets);
+  }, []);  // 避免死循环
+
   if (pageMetrics.length === 0) {
     return <div className="text-center text-gray-500">Loading PDF…</div>;
   }
 
   // ——— 4. 最终渲染：画布 + 子组件（评论 & 代码标注） ———
   return (
-    <div className="relative bg-gray-100 overflow-auto h-full">
+    <div 
+      ref={outerContainerRef}
+      className="relative bg-gray-100 overflow-auto h-full"
+    >
       <div className="relative z-0">
         {pageMetrics.map((m, i) => (
           <div
