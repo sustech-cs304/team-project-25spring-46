@@ -59,18 +59,18 @@ export function activate(context: vscode.ExtensionContext) {
 		// 获取 index.html 路径
 		const indexHtmlPath = path.join(context.extensionPath, 'dist', 'index.html');
 		let htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
-  
+
 		// 替换 /assets/ 路径，注意：正则匹配 src 或 href 属性中以 /assets/ 开头的路径
 		const assetsOnDisk = vscode.Uri.file(path.join(context.extensionPath, 'dist', 'assets'));
 		const assetsUri = panel.webview.asWebviewUri(assetsOnDisk);
 		// 将所有 src="/assets/ 或 href="/assets/ 替换为当前的 assetsUri 路径
 		htmlContent = htmlContent.replace(/(src|href)="\/assets\//g, `$1="${assetsUri.toString()}/`);
-  
+
 		// 替换 favicon 路径 /vite.svg 为正确的 webview URI
 		const viteSvgPath = vscode.Uri.file(path.join(context.extensionPath, 'dist', 'vite.svg'));
 		const viteSvgUri = panel.webview.asWebviewUri(viteSvgPath);
 		htmlContent = htmlContent.replace(/href="\/vite\.svg"/g, `href="${viteSvgUri.toString()}"`);
-  
+
 		// 插入内容安全策略（CSP）meta标签，确保允许加载需要的脚本和样式
 		const cspMetaTag = `<meta http-equiv="Content-Security-Policy" content="
 			default-src 'none';
@@ -252,12 +252,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 					// 解析输出的代码文件路径 (每一行一个)
 					const codeFiles = stdout.trim().split('\n');
-					// Promise.all(codeFiles.map(async (codePath) => ({
-					// 	path: codePath,
-					// 	content: await fs.promises.readFile(codePath, 'utf-8')
-					// }))).then((codes) => {
-					// 	panel.webview.postMessage({ command: 'codeRecognitionResult', codes });
-					// });
 					const codes = codeFiles.map((content, index) => ({
 						path: `Snippet ${index + 1}`,
 						content
@@ -481,7 +475,7 @@ export function activate(context: vscode.ExtensionContext) {
 				case 'deleteUser':
 					try {
 						const userId = parseInt(message.userId);
-						
+
 						if (isNaN(userId)) {
 							panel.webview.postMessage({
 								command: 'deleteUserResult',
@@ -532,7 +526,7 @@ export function activate(context: vscode.ExtensionContext) {
 				case 'getFriendsList':
 					try {
 						const userId = message.userId;
-						
+
 						if (!userId) {
 							panel.webview.postMessage({
 								command: 'getFriendsListResult',

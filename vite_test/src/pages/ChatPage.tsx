@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import './ChatPage.css';
 import { getVsCodeApi } from '../vscodeApi';
+import GroupTaskPage from './taskComponents/GroupTaskPage';
 
 const vscode = getVsCodeApi();
 
@@ -52,13 +53,13 @@ const ChatPage: React.FC = () => {
   useEffect(() => {
     // Get current user ID
     vscode?.postMessage({ command: 'getCurrentUserid' });
-    
+
     // Get all users
     vscode?.postMessage({ command: 'getUsers' });
 
     const handleMessage = (e: MessageEvent) => {
       const msg = e.data;
-      
+
       switch (msg.command) {
         case 'currentUseridResult':
           if (msg.success && msg.userId) {
@@ -122,15 +123,15 @@ const ChatPage: React.FC = () => {
             // Refresh messages
             if (selectedChat) {
               if (selectedChat.type === 'group') {
-                vscode?.postMessage({ 
-                  command: 'getGroupMessages', 
-                  groupId: selectedChat.id 
+                vscode?.postMessage({
+                  command: 'getGroupMessages',
+                  groupId: selectedChat.id
                 });
               } else {
-                vscode?.postMessage({ 
-                  command: 'getFriendMessages', 
-                  userId: currentUserId, 
-                  friendId: selectedChat.id 
+                vscode?.postMessage({
+                  command: 'getFriendMessages',
+                  userId: currentUserId,
+                  friendId: selectedChat.id
                 });
               }
             }
@@ -154,10 +155,10 @@ const ChatPage: React.FC = () => {
     if (chat.type === 'group') {
       vscode?.postMessage({ command: 'getGroupMessages', groupId: chat.id });
     } else {
-      vscode?.postMessage({ 
-        command: 'getFriendMessages', 
-        userId: currentUserId, 
-        friendId: chat.id 
+      vscode?.postMessage({
+        command: 'getFriendMessages',
+        userId: currentUserId,
+        friendId: chat.id
       });
     }
   };
@@ -260,6 +261,17 @@ const ChatPage: React.FC = () => {
             <div className="chat-header">
               <h3>{selectedChat.name}</h3>
             </div>
+
+            {selectedChat.type === 'group' && (
+              <div className="group-tasks-section">
+                <GroupTaskPage
+                  groupId={parseInt(selectedChat.id)}
+                  groupName={selectedChat.name}
+                />
+              </div>
+            )}
+
+
             <div className="messages">
               {selectedChat.messages?.map((message, index) => (
                 <div
