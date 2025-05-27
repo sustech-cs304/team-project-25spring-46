@@ -1,63 +1,73 @@
-// CoursePage.tsx
-import { useState, useEffect } from "react";
-import ResourceCard from "../components/ResourceCard";
+// vite_test/src/pages/CoursePage.tsx
+import { useState, useEffect } from 'react';
+import ResourceCard from '../components/ResourceCard';
 import { getVsCodeApi } from '../vscodeApi';
-export default function CoursePage({ setSelectedFile }: { setSelectedFile: (file: string) => void }) {
-  const vscode = getVsCodeApi();
-  if(vscode == null) {
-    const [currentCourse, setCurrentCourse] = useState("操作系统");
-    const courses = ["操作系统", "数据结构", "AI导论"];
 
+interface CoursePageProps {
+  initialCourseName?: string;
+  setSelectedFile: (file: string) => void;
+}
+
+export default function CoursePage({ initialCourseName, setSelectedFile }: CoursePageProps) {
+  const vscode = getVsCodeApi();
+
+  // 本地模式下的静态示例
+  if (vscode == null) {
+    const [currentCourse, setCurrentCourse] = useState(initialCourseName ?? '操作系统');
+    const courses = ['操作系统', '数据结构', 'AI导论'];
     return (
       <div className="flex flex-col items-center space-y-6">
         <div className="mt-6 text-center">
           <h1 className="text-3xl font-bold mb-2">📘 {currentCourse}</h1>
           <select
             value={currentCourse}
-            onChange={(e) => setCurrentCourse(e.target.value)}
+            onChange={e => setCurrentCourse(e.target.value)}
             className="border p-2 rounded-md"
           >
-            {courses.map((course) => (
-              <option key={course} value={course}>{course}</option>
+            {courses.map(c => (
+              <option key={c} value={c}>{c}</option>
             ))}
           </select>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-10">
-          <ResourceCard title="讲义" count={8} files={["Lecture1.pdf", "Lecture2.pdf"]} />
-          <ResourceCard title="作业" count={5} files={["HW1.docx", "HW2.docx"]} />
-          <ResourceCard title="资料" count={10} files={["Paper1.pdf"]} />
-          <ResourceCard title="笔记" count={3} files={["Note1.md"]} />
+          <ResourceCard title="讲义" count={8} files={['Lecture1.pdf', 'Lecture2.pdf']} />
+          <ResourceCard title="作业" count={5} files={['HW1.docx', 'HW2.docx']} />
+          <ResourceCard title="资料" count={10} files={['Paper1.pdf']} />
+          <ResourceCard title="笔记" count={3} files={['Note1.md']} />
         </div>
       </div>
     );
   }
+
+  // VSCode API 环境下动态加载
   const [courses, setCourses] = useState<{ name: string }[]>([]);
-  const [currentCourse, setCurrentCourse] = useState("");
+  const [currentCourse, setCurrentCourse] = useState(initialCourseName ?? '');
   const [files, setFiles] = useState<string[][]>([[], [], [], []]);
+  const subfolders = ['讲义', '作业', '资料', '笔记'];
 
   useEffect(() => {
-    window.addEventListener("message", (event) => {
-      const message = event.data;
-      if (message.command === "coursesData") {
-        setCourses(message.courses);
-        if (message.courses.length > 0) {
-          setCurrentCourse(message.courses[0].name);
-          vscode.postMessage({ command: "getCourseFiles", courseName: message.courses[0].name });
-        }
-      } else if (message.command === "courseFilesData") {
-        setFiles(message.files);
+    const handleMessage = (event: MessageEvent) => {
+      const msg = event.data;
+      if (msg.command === 'coursesData') {
+        setCourses(msg.courses);
+        const toLoad = initialCourseName && msg.courses.some((c: { name: string }) => c.name === initialCourseName)
+          ? initialCourseName
+          : msg.courses[0]?.name;
+        setCurrentCourse(toLoad);
+        vscode.postMessage({ command: 'getCourseFiles', courseName: toLoad });
+      } else if (msg.command === 'courseFilesData') {
+        setFiles(msg.files);
       }
-    });
-
-    vscode.postMessage({ command: "getCourses" });
-  }, []);
+    };
+    window.addEventListener('message', handleMessage);
+    vscode.postMessage({ command: 'getCourses' });
+    return () => window.removeEventListener('message', handleMessage);
+  }, [vscode, initialCourseName]);
 
   const handleCourseChange = (courseName: string) => {
     setCurrentCourse(courseName);
-    vscode.postMessage({ command: "getCourseFiles", courseName });
+    vscode.postMessage({ command: 'getCourseFiles', courseName });
   };
-
-  const subfolders = ['讲义', '作业', '资料', '笔记'];
 
   return (
     <div className="flex flex-col items-center space-y-6">
@@ -65,27 +75,22 @@ export default function CoursePage({ setSelectedFile }: { setSelectedFile: (file
         <h1 className="text-3xl font-bold mb-2">📘 {currentCourse}</h1>
         <select
           value={currentCourse}
-          onChange={(e) => handleCourseChange(e.target.value)}
+          onChange={e => handleCourseChange(e.target.value)}
           className="border p-2 rounded-md"
         >
-          {courses.map((course) => (
-            <option key={course.name} value={course.name}>{course.name}</option>
+          {courses.map(c => (
+            <option key={c.name} value={c.name}>{c.name}</option>
           ))}
         </select>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-10">
-        {subfolders.map((sub, index) => (
+        {subfolders.map((sub, idx) => (
           <ResourceCard
             key={sub}
             title={sub}
-            count={files[index].length}
-            files={files[index]}
-            // onFileClick={(fileName) => setSelectedFile(`${currentCourse}/${sub}/${fileName}`)}
-            onFileClick={(fileName) => {
-              const path = `${currentCourse}/${sub}/${fileName}`;
-              setSelectedFile(path);         // 通知 App 选了哪一个
-              // App 会自动把 currentPage 切到 FilePage
-            }}
+            count={files[idx].length}
+            files={files[idx]}
+            onFileClick={fileName => setSelectedFile(`${currentCourse}/${sub}/${fileName}`)}
           />
         ))}
       </div>

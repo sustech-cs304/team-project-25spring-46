@@ -48,13 +48,7 @@
           "name": "⚡ Open Webview"
         }
       ]
-    },
-    "commands": [
-      {
-        "command": "test-combine.openWebview",
-        "title": "Open Webview"
-      }
-    ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
