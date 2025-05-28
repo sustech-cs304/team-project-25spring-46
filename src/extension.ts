@@ -1346,10 +1346,49 @@ export function activate(context: vscode.ExtensionContext) {
 								return;
 							}
 
+							// 获取当前群聊信息（查 owner）
+							const { data: groupData, error: groupError } = await supabase
+								.from('groups')
+								.select('owner')
+								.eq('id', groupId)
+								.single();
+
+							if (groupError || !groupData) {
+								panel.webview.postMessage({
+									command: 'removeGroupMembersResult',
+									success: false,
+									error: '无法获取群聊信息'
+								});
+								return;
+							}
+
+							// 检查当前登录用户是否是群主
+							if (currentUserId !== groupData.owner) {
+								panel.webview.postMessage({
+									command: 'removeGroupMembersResult',
+									success: false,
+									error: '只有群主可以删除成员'
+								});
+								return;
+							}
+
+							// 群主不能删除自己
+							const filteredIds = memberIds.filter((id: number) => id !== currentUserId);
+
+							if (filteredIds.length === 0) {
+								panel.webview.postMessage({
+									command: 'removeGroupMembersResult',
+									success: false,
+									error: '不能删除群主自己'
+								});
+								return;
+							}
+
+							// 删除群成员
 							const { error } = await supabase
 								.from('group_members')
 								.delete()
-								.in('member_id', memberIds)
+								.in('member_id', filteredIds)
 								.eq('group_id', groupId);
 
 							if (error) {

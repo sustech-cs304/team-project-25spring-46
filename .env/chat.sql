@@ -45,31 +45,3 @@ CREATE TABLE group_message
     text     TEXT        NOT NULL,
     time     TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
--- 添加用户
-INSERT INTO users (username)
-VALUES ('我'),
-       ('Alice'),
-       ('Bob'),
-       ('Charlie');
-
--- 添加好友关系（我 <-> Alice）
-INSERT INTO friends (user_id, friend_id)
-SELECT u1.id, u2.id
-FROM users u1,
-     users u2
-WHERE u1.username = '我'
-  AND u2.username = 'Alice';
-
--- 创建群组
-INSERT INTO groups (name, owner)
-SELECT '编程小组', id
-FROM users
-WHERE username = '我';
-
--- 添加群成员
-INSERT INTO group_members (group_id, member_id)
-SELECT g.id, u.id
-FROM groups g,
-     users u
-WHERE g.name = '编程小组'
-  AND u.username IN ('我', 'Alice', 'Bob');

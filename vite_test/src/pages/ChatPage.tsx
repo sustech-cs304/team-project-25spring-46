@@ -57,6 +57,9 @@ const ChatPage: React.FC = () => {
 
   const [selectedRemoveUsers, setSelectedRemoveUsers] = useState<User[]>([]);
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+
   useEffect(() => {
     // 初始化加载用户 ID 和用户列表
     vscode?.postMessage({ command: 'getCurrentUserid' });
@@ -167,6 +170,18 @@ const ChatPage: React.FC = () => {
             }
           }
           break;
+        case 'removeGroupMembersResult':
+          if (msg.success) {
+            if (selectedChat) {
+              vscode.postMessage({ command: 'getGroupUsers', groupId: selectedChat.id });
+            }
+            setSelectedRemoveUsers([]);
+            setShowGroupMembersModal(false);
+          } else {
+            setErrorMessage('删除失败：' + (msg.error || '未知错误'));
+          }
+          break;
+
 
       }
     };
@@ -468,8 +483,6 @@ const ChatPage: React.FC = () => {
                 groupId: selectedChat.id,
                 memberIds: selectedRemoveUsers.map(u => u.id)
               });
-              setSelectedRemoveUsers([]);
-              setShowGroupMembersModal(false);
             }
           }}
           style={{ backgroundColor: 'red', color: 'white', marginTop: '10px' }}
@@ -517,6 +530,18 @@ const ChatPage: React.FC = () => {
           添加成员
         </button>
       </Modal>
+
+      <Modal
+        isOpen={!!errorMessage}
+        onRequestClose={() => setErrorMessage(null)}
+        className="modal-content"
+        overlayClassName="modal-overlay"
+      >
+        <h2>错误</h2>
+        <p>{errorMessage}</p>
+        <button onClick={() => setErrorMessage(null)}>关闭</button>
+      </Modal>
+
 
     </div>
   );
