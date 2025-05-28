@@ -51,6 +51,10 @@ const ChatPage: React.FC = () => {
   const [showGroupMembersModal, setShowGroupMembersModal] = useState(false);
   const [groupMembers, setGroupMembers] = useState<User[]>([]);
 
+
+  const [showAddMembersModal, setShowAddMembersModal] = useState(false);
+  const [addableUsers, setAddableUsers] = useState<User[]>([]);
+
   useEffect(() => {
     // 初始化加载用户 ID 和用户列表
     vscode?.postMessage({ command: 'getCurrentUserid' });
@@ -146,9 +150,19 @@ const ChatPage: React.FC = () => {
             setNewMessage('');
           }
           break;
+        // case 'getGroupUsersResult':
+        //   if (msg.success && msg.users) {
+        //     setGroupMembers(msg.users); // 重用已存在的 selectedUsers 状态
+        //   }
+        //   break;
+
         case 'getGroupUsersResult':
           if (msg.success && msg.users) {
-            setGroupMembers(msg.users); // 重用已存在的 selectedUsers 状态
+            setGroupMembers(msg.users);
+            if (showAddMembersModal && selectedChat) {
+              const memberIds = msg.users.map((u: User) => u.id);
+              setAddableUsers(userList.filter(u => !memberIds.includes(u.id) && u.id !== currentUserId));
+            }
           }
           break;
 
@@ -311,15 +325,26 @@ const ChatPage: React.FC = () => {
             <div className="chat-header">
               <h3>{selectedChat.name}</h3>
               {selectedChat.type === 'group' && (
-                <button
-                  className="view-members-button"
-                  onClick={() => {
-                    vscode?.postMessage({ command: 'getGroupUsers', groupId: selectedChat.id })
-                    setShowGroupMembersModal(true);
-                  }}
-                >
-                  查看群成员
-                </button>
+                <>
+                  <button
+                    className="view-members-button"
+                    onClick={() => {
+                      vscode?.postMessage({ command: 'getGroupUsers', groupId: selectedChat.id });
+                      setShowGroupMembersModal(true);
+                    }}
+                  >
+                    查看群成员
+                  </button>
+                  <button
+                    className="view-members-button"
+                    onClick={() => {
+                      vscode?.postMessage({ command: 'getGroupUsers', groupId: selectedChat.id });
+                      setShowAddMembersModal(true);
+                    }}
+                  >
+                    添加成员
+                  </button>
+                </>
               )}
             </div>
             <div className="messages">
@@ -427,6 +452,45 @@ const ChatPage: React.FC = () => {
         <button onClick={() => setShowGroupMembersModal(false)}>关闭</button>
       </Modal>
 
+
+      <Modal
+        isOpen={showAddMembersModal}
+        onRequestClose={() => setShowAddMembersModal(false)}
+        className="modal-content"
+        overlayClassName="modal-overlay"
+      >
+        <h2>添加群成员</h2>
+        <div className="user-list">
+          {addableUsers.map(user => (
+            <div
+              key={user.id}
+              className={`user-item ${selectedUsers.some(u => u.id === user.id) ? 'selected' : ''}`}
+              onClick={() => handleUserSelection(user)}
+              data-avatar={user.name?.charAt(0).toUpperCase() || '?'}
+            >
+              <div>
+                <div>{user.name}</div>
+                <div>{user.email || '无邮箱信息'}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={() => {
+            if (selectedUsers.length > 0 && selectedChat) {
+              vscode.postMessage({
+                command: 'addGroupMembers',
+                groupId: selectedChat.id,
+                memberIds: selectedUsers.map(u => Number(u.id))
+              });
+              setSelectedUsers([]);
+              setShowAddMembersModal(false);
+            }
+          }}
+        >
+          添加成员
+        </button>
+      </Modal>
 
     </div>
   );

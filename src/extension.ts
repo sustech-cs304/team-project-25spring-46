@@ -1289,6 +1289,50 @@ export function activate(context: vscode.ExtensionContext) {
 
 					///////////////////////
 
+					case 'addGroupMembers':
+						try {
+							const { groupId, memberIds } = message;
+
+							if (!groupId || !Array.isArray(memberIds) || memberIds.length === 0) {
+								panel.webview.postMessage({
+									command: 'addGroupMembersResult',
+									success: false,
+									error: '缺少 groupId 或 memberIds'
+								});
+								return;
+							}
+
+							// 构建要插入的行（防止重复插入）
+							const rows = memberIds.map((id: number) => ({
+								group_id: groupId,
+								member_id: id
+							}));
+
+							const { error } = await supabase
+								.from('group_members')
+								.upsert(rows, { onConflict: 'group_id,member_id' });
+
+							if (error) {
+								panel.webview.postMessage({
+									command: 'addGroupMembersResult',
+									success: false,
+									error: error.message
+								});
+							} else {
+								panel.webview.postMessage({
+									command: 'addGroupMembersResult',
+									success: true
+								});
+							}
+						} catch (err: any) {
+							panel.webview.postMessage({
+								command: 'addGroupMembersResult',
+								success: false,
+								error: err.message
+							});
+						}
+						break;
+
 					default:
 						vscode.window.showInformationMessage(`未识别的命令: ${message.command}`);
 						console.log(`未识别的命令: ${message.command}`);
