@@ -243,7 +243,8 @@ export function activate(context: vscode.ExtensionContext) {
 					const coursePath = res.rows[0].folder_path;
 					const absolutePath = path.join(coursePath, subfolder, filename);
 					const scriptPath = path.join(context.extensionPath, 'src', 'pdf_test.py');
-					const outPath = path.join(context.extensionPath, 'cr_out');
+					// const outPath = path.join(context.extensionPath, 'cr_out');
+					const outPath = "E:/test";
 
 					// 发送开始识别的消息
 					panel.webview.postMessage({ command: 'recognitionStarted' });
@@ -253,7 +254,7 @@ export function activate(context: vscode.ExtensionContext) {
 						if (!fs.existsSync(outPath)) {
 							fs.mkdirSync(outPath, { recursive: true });
 						}
-
+						console.log(`开始识别文件: ${absolutePath}, 输出目录: ${outPath}`);
 						// 运行 Python 脚本
 						const command = [absolutePath, outPath];
 						const stdout = dailyworkEnv.runScript(scriptPath, command);
@@ -384,9 +385,19 @@ export function activate(context: vscode.ExtensionContext) {
 						fs.writeFileSync(tmpPath, code, 'utf-8');
 						exec(`python "${tmpPath}"`, (error, stdout, stderr) => {
 							if (error) {
-								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stderr || error.message });
+								console.log('发送 runCodeResult:', { result: stderr || error.message, blockIdx: message.blockIdx });
+								panel.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stderr || error.message, 
+									blockIdx: message.blockIdx 
+								});
 							} else {
-								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stdout });
+								console.log('发送 runCodeResult:', { result: stdout, blockIdx: message.blockIdx });
+								panel.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stdout, 
+									blockIdx: message.blockIdx 
+								});
 							}
 						});
 					}
@@ -395,9 +406,19 @@ export function activate(context: vscode.ExtensionContext) {
 						fs.writeFileSync(tmpPath, code, 'utf-8');
 						exec(`gcc "${tmpPath}"\n ./a.exe`, (error, stdout, stderr) => {
 							if (error) {
-								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stderr || error.message });
+								console.log('发送 runCodeResult:', { result: stderr || error.message, blockIdx: message.blockIdx });
+								panel.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stderr || error.message, 
+									blockIdx: message.blockIdx 
+								});
 							} else {
-								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stdout });
+								console.log('发送 runCodeResult:', { result: stdout, blockIdx: message.blockIdx });
+								panel.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stdout, 
+									blockIdx: message.blockIdx 
+								});
 							}
 						});
 					}
@@ -406,10 +427,20 @@ export function activate(context: vscode.ExtensionContext) {
 						fs.writeFileSync(tmpPath, code, 'utf-8');
 						exec(`g++ "${tmpPath}"\n ./a.exe`, (error, stdout, stderr) => {
 							if (error) {
-								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stderr || error.message });
+								console.log('发送 runCodeResult:', { result: stderr || error.message, blockIdx: message.blockIdx });
+								panel.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stderr || error.message, 
+									blockIdx: message.blockIdx 
+								});
 							}
 							else {
-								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stdout });
+								console.log('发送 runCodeResult:', { result: stdout, blockIdx: message.blockIdx });
+								panel.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stdout, 
+									blockIdx: message.blockIdx 
+								});
 							}
 						});
 					}
@@ -422,18 +453,38 @@ export function activate(context: vscode.ExtensionContext) {
 						fs.writeFileSync(tmpPath, code, 'utf-8');
 						exec(`javac "${tmpPath}"\n java -cp "${path.dirname(tmpPath)}" "${path.basename(tmpPath, '.java')}"`, (error, stdout, stderr) => {
 							if (error) {
-								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stderr || error.message });
+								console.log('发送 runCodeResult:', { result: stderr || error.message, blockIdx: message.blockIdx });
+								panel.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stderr || error.message, 
+									blockIdx: message.blockIdx 
+								});
 							}
 							else {
-								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stdout });
+								console.log('发送 runCodeResult:', { result: stdout, blockIdx: message.blockIdx });
+								panel.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stdout, 
+									blockIdx: message.blockIdx 
+								});
 							}
 						});
 					}
 					else {
-						panel.webview.postMessage({ command: 'runCodeBlockResult', result: '暂不支持该语言运行' });
+						console.log('发送 runCodeResult:', { result: '暂不支持该语言运行', blockIdx: message.blockIdx });
+						panel.webview.postMessage({ 
+							command: 'runCodeResult', 
+							result: '暂不支持该语言运行', 
+							blockIdx: message.blockIdx 
+						});
 					}
 				} catch (err: any) {
-					panel.webview.postMessage({ command: 'runCodeBlockResult', result: err.message });
+					console.log('发送 runCodeResult:', { result: err.message, blockIdx: message.blockIdx });
+					panel.webview.postMessage({ 
+						command: 'runCodeResult', 
+						result: err.message, 
+						blockIdx: message.blockIdx 
+					});
 				}
 				break;
 				case 'generateSummary':
@@ -656,9 +707,11 @@ export function activate(context: vscode.ExtensionContext) {
 						const compilerExists = await checkCompiler();
 						
 						if (!compilerExists) {
+							console.log('发送 runCodeResult:', { result: `错误: 未检测到${language}所需的编译器/解释器，请安装相应的开发环境。`, blockIdx: message.blockIdx });
 							panel.webview.postMessage({ 
 								command: 'runCodeResult', 
-								result: `错误: 未检测到${language}所需的编译器/解释器，请安装相应的开发环境。` 
+								result: `错误: 未检测到${language}所需的编译器/解释器，请安装相应的开发环境。`,
+								blockIdx: message.blockIdx
 							});
 							vscode.window.showErrorMessage(`未检测到${language}所需的编译器/解释器，请安装相应的开发环境。`);
 							return;
@@ -697,21 +750,27 @@ export function activate(context: vscode.ExtensionContext) {
 						// 运行命令
 						exec(command, (error, stdout, stderr) => {
 							if (error) {
+								console.log('发送 runCodeResult:', { result: stderr || error.message, blockIdx: message.blockIdx });
 								panel.webview.postMessage({ 
-								  command: 'runCodeResult', 
-								  result: stderr || error.message 
+									command: 'runCodeResult', 
+									result: stderr || error.message,
+									blockIdx: message.blockIdx
 								});
 							} else {
+								console.log('发送 runCodeResult:', { result: stdout, blockIdx: message.blockIdx });
 								panel.webview.postMessage({ 
-								  command: 'runCodeResult', 
-								  result: stdout 
+									command: 'runCodeResult', 
+									result: stdout,
+									blockIdx: message.blockIdx
 								});
 							}
 						});
 					} catch (error: any) {
+						console.log('发送 runCodeResult:', { result: `错误: ${error.message}`, blockIdx: message.blockIdx });
 						panel.webview.postMessage({ 
-						  command: 'runCodeResult', 
-						  result: `错误: ${error.message}` 
+							command: 'runCodeResult', 
+							result: `错误: ${error.message}`,
+							blockIdx: message.blockIdx
 						});
 					}
 					break;

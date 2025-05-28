@@ -135,45 +135,48 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ filePath, children, onPageChange 
     const checkVisiblePage = () => {
       const container = document.querySelector('.relative.bg-gray-100.overflow-auto.h-full');
       if (!container) return;
-      
-      const pages = Array.from(container.querySelectorAll('.mx-auto.relative.mb-2'));
+
+      // 修正选择器
+      const pages = Array.from(container.querySelectorAll('.mx-auto.relative.mb-6'));
       if (pages.length === 0) return;
-      
+
       const containerRect = container.getBoundingClientRect();
-      
+
       let mostVisiblePage = 0;
       let maxVisibleArea = 0;
-      
+
       pages.forEach((page, index) => {
         const pageRect = page.getBoundingClientRect();
         const visibleTop = Math.max(pageRect.top, containerRect.top);
         const visibleBottom = Math.min(pageRect.bottom, containerRect.bottom);
         const visibleHeight = Math.max(0, visibleBottom - visibleTop);
         const visibleArea = visibleHeight * pageRect.width;
-        
+
         if (visibleArea > maxVisibleArea) {
           maxVisibleArea = visibleArea;
           mostVisiblePage = index;
         }
       });
-      
+
       // 页码从1开始
       const currentPageNumber = mostVisiblePage + 1;
       if (onPageChange) {
         onPageChange(currentPageNumber);
       }
     };
-    
+
     const container = document.querySelector('.relative.bg-gray-100.overflow-auto.h-full');
     if (container) {
       container.addEventListener('scroll', checkVisiblePage);
-      // 初始检查
-      setTimeout(checkVisiblePage, 500);
+      window.addEventListener('resize', checkVisiblePage);
+      // 初始和每次pageMetrics变化都主动检测一次
+      checkVisiblePage();
     }
-    
+
     return () => {
       if (container) {
         container.removeEventListener('scroll', checkVisiblePage);
+        window.removeEventListener('resize', checkVisiblePage);
       }
     };
   }, [pageMetrics.length, onPageChange]);

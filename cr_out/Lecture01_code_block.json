@@ -1,0 +1,743 @@
+[
+    {
+        "type": "code",
+        "page": 9,
+        "position": [
+            0.1204895814259847,
+            0.248090249520761,
+            0.1893444856007894,
+            0.040324091028284145
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_9_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\nint main()\n{\nvector<string> msg {\"Hello\", \"C++\", \"World\", \"!\"};\nfor (const string& word : msg)\n{\ncout << word << \" \";\n}\ncout << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 9,
+        "position": [
+            0.1204895814259847,
+            0.3008888527199074,
+            0.1658939838409424,
+            0.04037037602177373
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_9_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\nint main()\n{\nvector<string> msg {\"Hello\", \"C++\", \"World\", \"!\"};\nfor (const string& word : msg)\n{\ncout << word << \" \";\n}\ncout << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 9,
+        "position": [
+            0.1204895814259847,
+            0.35377544826931423,
+            0.15963066418965657,
+            0.040324091028284145
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_9_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\nint main()\n{\nvector<string> msg {\"Hello\", \"C++\", \"World\", \"!\"};\nfor (const string& word : msg)\n{\ncout << word << \" \";\n}\ncout << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 9,
+        "position": [
+            0.1204895814259847,
+            0.4414236280653212,
+            0.19947466850280762,
+            0.040324091028284145
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_9_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\nint main()\n{\nvector<string> msg {\"Hello\", \"C++\", \"World\", \"!\"};\nfor (const string& word : msg)\n{\ncout << word << \" \";\n}\ncout << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 9,
+        "position": [
+            0.1204895814259847,
+            0.5290162263093171,
+            0.09031006495157877,
+            0.04032406277126736
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_9_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\nint main()\n{\nvector<string> msg {\"Hello\", \"C++\", \"World\", \"!\"};\nfor (const string& word : msg)\n{\ncout << word << \" \";\n}\ncout << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 9,
+        "position": [
+            0.1204895814259847,
+            0.5818865740740741,
+            0.007122238477071126,
+            0.04032406277126736
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_9_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\nint main()\n{\nvector<string> msg {\"Hello\", \"C++\", \"World\", \"!\"};\nfor (const string& word : msg)\n{\ncout << word << \" \";\n}\ncout << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 9,
+        "position": [
+            0.1413541634877523,
+            0.634666668927228,
+            0.4576483567555745,
+            0.04037040427879051
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_9_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\nint main()\n{\nvector<string> msg {\"Hello\", \"C++\", \"World\", \"!\"};\nfor (const string& word : msg)\n{\ncout << word << \" \";\n}\ncout << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 9,
+        "position": [
+            0.1413541634877523,
+            0.6875717728226273,
+            0.27671650250752766,
+            0.04032406277126736
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_9_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\nint main()\n{\nvector<string> msg {\"Hello\", \"C++\", \"World\", \"!\"};\nfor (const string& word : msg)\n{\ncout << word << \" \";\n}\ncout << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 9,
+        "position": [
+            0.1413541634877523,
+            0.7404421205873842,
+            0.007122246424357096,
+            0.04032406277126736
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_9_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\nint main()\n{\nvector<string> msg {\"Hello\", \"C++\", \"World\", \"!\"};\nfor (const string& word : msg)\n{\ncout << word << \" \";\n}\ncout << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 9,
+        "position": [
+            0.1621874968210856,
+            0.7918866192853009,
+            0.18571426073710123,
+            0.04032406277126736
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_9_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\nint main()\n{\nvector<string> msg {\"Hello\", \"C++\", \"World\", \"!\"};\nfor (const string& word : msg)\n{\ncout << word << \" \";\n}\ncout << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 9,
+        "position": [
+            0.1413541634877523,
+            0.8447569670500579,
+            0.007122246424357096,
+            0.04032406277126736
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_9_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\nint main()\n{\nvector<string> msg {\"Hello\", \"C++\", \"World\", \"!\"};\nfor (const string& word : msg)\n{\ncout << word << \" \";\n}\ncout << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 9,
+        "position": [
+            0.1413541634877523,
+            0.8975810298213253,
+            0.12133927345275879,
+            0.04032406277126736
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_9_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\nint main()\n{\nvector<string> msg {\"Hello\", \"C++\", \"World\", \"!\"};\nfor (const string& word : msg)\n{\ncout << word << \" \";\n}\ncout << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 9,
+        "position": [
+            0.1204895814259847,
+            0.9504514341001158,
+            0.007122238477071126,
+            0.0403240062572338
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_9_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\nint main()\n{\nvector<string> msg {\"Hello\", \"C++\", \"World\", \"!\"};\nfor (const string& word : msg)\n{\ncout << word << \" \";\n}\ncout << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.1125,
+            0.0021550849631980615,
+            0.17256879806518555,
+            0.037546295589870875
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\nusing namespace std;\nint mul(int a, int b)\n{\nreturn a * b;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.1125,
+            0.08280326701976636,
+            0.18201424280802408,
+            0.03754629205774378
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\nusing namespace std;\nint mul(int a, int b)\n{\nreturn a * b;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.1125,
+            0.1635069387930411,
+            0.15801388422648113,
+            0.03754629912199797
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\nusing namespace std;\nint mul(int a, int b)\n{\nreturn a * b;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.1125,
+            0.2135624920880353,
+            0.006631612777709961,
+            0.037546313250506363
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\nusing namespace std;\nint mul(int a, int b)\n{\nreturn a * b;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.13125,
+            0.2636550620750145,
+            0.10472261110941569,
+            0.037546313250506363
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\nusing namespace std;\nint mul(int a, int b)\n{\nreturn a * b;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.1125,
+            0.3123032463921441,
+            0.006631612777709961,
+            0.037546313250506363
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\nusing namespace std;\nint mul(int a, int b)\n{\nreturn a * b;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.1125,
+            0.36239581637912327,
+            0.0824412981669108,
+            0.037546313250506363
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_1.cpp",
+        "language": "C++",
+        "code": "int main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.1125,
+            0.4124328895851418,
+            0.006631612777709961,
+            0.037546313250506363
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_1.cpp",
+        "language": "C++",
+        "code": "int main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.13125,
+            0.4611551072862413,
+            0.06386844317118327,
+            0.037546313250506363
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_1.cpp",
+        "language": "C++",
+        "code": "int main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.13125,
+            0.5111921522352431,
+            0.08144135475158691,
+            0.03754628499348958
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_1.cpp",
+        "language": "C++",
+        "code": "int main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.13125,
+            0.5918958875868056,
+            0.2398267428080241,
+            0.03754628499348958
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_1.cpp",
+        "language": "C++",
+        "code": "int main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.13125,
+            0.6419329042787905,
+            0.07055594126383463,
+            0.03754628499348958
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_1.cpp",
+        "language": "C++",
+        "code": "int main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.13125,
+            0.6919351648401331,
+            0.07146916389465333,
+            0.03759262650101273
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_1.cpp",
+        "language": "C++",
+        "code": "int main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.13125,
+            0.772673656322338,
+            0.14991044998168945,
+            0.03754628499348958
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_1.cpp",
+        "language": "C++",
+        "code": "int main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.13125,
+            0.8533217818648727,
+            0.3433684349060059,
+            0.03754628499348958
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_1.cpp",
+        "language": "C++",
+        "code": "int main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.13125,
+            0.9034143518518518,
+            0.07449343999226889,
+            0.03754628499348958
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_1.cpp",
+        "language": "C++",
+        "code": "int main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 22,
+        "position": [
+            0.1125,
+            0.953460693359375,
+            0.006631612777709961,
+            0.03754622847945602
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_22_1.cpp",
+        "language": "C++",
+        "code": "int main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.03515625,
+            0.19626156842267073,
+            0.15522332191467286,
+            0.03337963245533131
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.03515625,
+            0.2435763606318721,
+            0.14799795150756836,
+            0.0333796465838397
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.03515625,
+            0.31728009824399594,
+            0.16372990608215332,
+            0.0333796465838397
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.03515625,
+            0.36453933715820314,
+            0.07394390900929769,
+            0.0333796465838397
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.03515625,
+            0.4104652969925492,
+            0.005895678202311198,
+            0.0333796465838397
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.05236979325612386,
+            0.45774307250976565,
+            0.05750593344370524,
+            0.0333796465838397
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.05236979325612386,
+            0.5036319308810764,
+            0.07302677631378174,
+            0.033379618326822916
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.05236979325612386,
+            0.578761574074074,
+            0.21583925088246664,
+            0.033379618326822916
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.05236979325612386,
+            0.6246505172164352,
+            0.06351635456085206,
+            0.033379618326822916
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.05236979325612386,
+            0.6719097561306424,
+            0.06443302631378174,
+            0.033379618326822916
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.05236979325612386,
+            0.7470578794126157,
+            0.1346929947535197,
+            0.033379618326822916
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.05236979325612386,
+            0.820752348723235,
+            0.3093080123265584,
+            0.033379618326822916
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.05236979325612386,
+            0.8680208559389467,
+            0.06695385773976643,
+            0.033379618326822916
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.03515625,
+            0.9139467592592593,
+            0.005895678202311198,
+            0.033379618326822916
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\n#include \"mul.hpp\"\nusing namespace std;\nint main()\n{\nint a, b;\nint result;\ncout << \"Pick two integers:\";\ncin >> a;\ncin >> b;\nresult = mul(a, b);\ncout << \"The result is \" << result << endl;\nreturn 0;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.4551770846048991,
+            0.3370948791503906,
+            0.14707320531209309,
+            0.0333796465838397
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_1.cpp",
+        "language": "C++",
+        "code": "int mul(int a, int b);\n#include \"mul.hpp\""
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.4551770846048991,
+            0.48283567075376155,
+            0.14800837834676106,
+            0.033379618326822916
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_1.cpp",
+        "language": "C++",
+        "code": "int mul(int a, int b);\n#include \"mul.hpp\""
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.4551770846048991,
+            0.5189838550708912,
+            0.1422620455423991,
+            0.033379618326822916
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_2.cpp",
+        "language": "C++",
+        "code": "int mul(int a, int b)\n{\nreturn a * b;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.4551770846048991,
+            0.573243091724537,
+            0.005895678202311198,
+            0.033379618326822916
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_2.cpp",
+        "language": "C++",
+        "code": "int mul(int a, int b)\n{\nreturn a * b;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.4723750114440918,
+            0.6274653116861979,
+            0.09434442520141602,
+            0.033379618326822916
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_2.cpp",
+        "language": "C++",
+        "code": "int mul(int a, int b)\n{\nreturn a * b;\n}"
+    },
+    {
+        "type": "code",
+        "page": 24,
+        "position": [
+            0.4551770846048991,
+            0.6817245483398438,
+            0.005895678202311198,
+            0.033379618326822916
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_24_2.cpp",
+        "language": "C++",
+        "code": "int mul(int a, int b)\n{\nreturn a * b;\n}"
+    },
+    {
+        "type": "code",
+        "page": 40,
+        "position": [
+            0.06692708333333333,
+            0.24097222222222223,
+            0.17272911071777344,
+            0.037592598243995946
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_40_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\nusing namespace std;\nint main(int argc, char * argv[])\n{\n    for (int i = 0; i < argc; i++)\n        cout << i << \": \" << argv[i] << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 40,
+        "position": [
+            0.06692708333333333,
+            0.3397477043999566,
+            0.18201427459716796,
+            0.037546313250506363
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_40_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\nusing namespace std;\nint main(int argc, char * argv[])\n{\n    for (int i = 0; i < argc; i++)\n        cout << i << \": \" << argv[i] << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 40,
+        "position": [
+            0.06692708333333333,
+            0.3981736077202691,
+            0.2612430254618327,
+            0.037546313250506363
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_40_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\nusing namespace std;\nint main(int argc, char * argv[])\n{\n    for (int i = 0; i < argc; i++)\n        cout << i << \": \" << argv[i] << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 40,
+        "position": [
+            0.06692708333333333,
+            0.4565995110405816,
+            0.006631612777709961,
+            0.037546313250506363
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_40_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\nusing namespace std;\nint main(int argc, char * argv[])\n{\n    for (int i = 0; i < argc; i++)\n        cout << i << \": \" << argv[i] << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 40,
+        "position": [
+            0.06692708333333333,
+            0.5150440357349537,
+            0.2295810063680013,
+            0.03754628499348958
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_40_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\nusing namespace std;\nint main(int argc, char * argv[])\n{\n    for (int i = 0; i < argc; i++)\n        cout << i << \": \" << argv[i] << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 40,
+        "position": [
+            0.06692708333333333,
+            0.573414385760272,
+            0.32446215947469076,
+            0.03754628499348958
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_40_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\nusing namespace std;\nint main(int argc, char * argv[])\n{\n    for (int i = 0; i < argc; i++)\n        cout << i << \": \" << argv[i] << endl;\n}"
+    },
+    {
+        "type": "code",
+        "page": 40,
+        "position": [
+            0.06692708333333333,
+            0.6318402890805845,
+            0.006631612777709961,
+            0.03754628499348958
+        ],
+        "path": "d:\\学习资料\\作业(2025Spring)\\CS304\\team-project-25spring-46\\cr_out/Lecture01.pdf_Page_40_0.cpp",
+        "language": "C++",
+        "code": "#include <iostream>\nusing namespace std;\nint main(int argc, char * argv[])\n{\n    for (int i = 0; i < argc; i++)\n        cout << i << \": \" << argv[i] << endl;\n}"
+    }
+]

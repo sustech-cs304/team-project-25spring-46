@@ -11,6 +11,7 @@ import type { CodeBlock } from './filePageComponents/CodeRecognition';
 import { CurrentPageCodeDisplay } from './CurrentPageCodeDisplay';
 import styles from './DisplayPage.module.css';
 import { getVsCodeApi } from '../vscodeApi';
+import MonacoEditor from 'react-monaco-editor';
 
 // 定义DisplayPageProps接口
 interface DisplayPageProps {
@@ -18,130 +19,120 @@ interface DisplayPageProps {
 }
 
 // 定义从后端接收的代码块数据结构
-interface CodeBlockData {
-  position: number[];  // 数组形式的位置 [x, y, width, height]
+type CodeBlockJson = {
   language: string;
   code: string;
   page: number;
-}
+  position?: [number, number, number, number];
+};
 
 const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
   const { openPanels } = useSidePanel();
   const [comments, setComments] = useState<CommentData[]>([]);
-  const [codeBlocksRaw, setCodeBlocksRaw] = useState<CodeBlockData[]>([]);
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  // const [codeBlocksRaw] = useState<CodeBlockData[]>([]);
+  const [allBlocks, setAllBlocks] = useState<CodeBlock[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedBlocks, setSelectedBlocks] = useState<CodeBlock[]>([]);
+  const [runResults, setRunResults] = useState<{ [key: number]: string }>({}); // 以block idx为key
   const vscode = getVsCodeApi();
 
-  // 获取评论数据
+  const currentPageBlocks = allBlocks.filter(b => b.page === currentPage);
+
   useEffect(() => {
     getAllComments(filePath)
       .then(setComments)
       .catch(err => console.error('加载评论失败:', err));
   }, [filePath]);
 
-  // 组件挂载时主动请求代码块数据
   useEffect(() => {
-    console.log('DisplayPage请求代码块数据，文件路径:', filePath);
-    if (vscode && filePath) {
-      vscode.postMessage({
-        command: 'requestCodeBlocks',
-        filePath: filePath
-      });
-    }
-  }, [filePath, vscode]);
-
-  // 监听消息
-  useEffect(() => {
-    console.log('DisplayPage设置消息监听器...');
-    
-    const handleMessage = (event: MessageEvent) => {
-      const message = event.data;
-      
-      // 打印所有收到的消息，无论类型
-      console.log('DisplayPage收到消息:', message.command, message);
-      
-      if (message.command === 'pdfCodeBlocks') {
-        try {
-          // 确保正确解析数据
-          const blockData = typeof message.data === 'string' 
-            ? JSON.parse(message.data) 
-            : message.data;
-          console.log(`解析PDF代码块数据: 收到 ${Array.isArray(blockData) ? blockData.length : 0} 个代码块`);
-          
-          // 确保每个代码块都有必要的字段
-          if (Array.isArray(blockData) && blockData.length > 0) {
-            const sample = blockData[0];
-            console.log("代码块示例:", {
-              position: sample.position,
-              language: sample.language,
-              page: sample.page,
-              codeLength: sample.code?.length || 0
-            });
-            
-            const validBlocks = blockData.filter(block => 
-              block && 
-              Array.isArray(block.position) && 
-              block.position.length === 4 &&
-              typeof block.code === 'string' && 
-              block.page
-            );
-            
-            if (validBlocks.length !== blockData.length) {
-              console.warn(`过滤后剩余 ${validBlocks.length}/${blockData.length} 个有效代码块`);
-            }
-            
-            setCodeBlocksRaw(validBlocks);
-          } else {
-            console.warn("PDF代码块数据为空或格式不正确");
-          }
-        } catch (err) {
-          console.error("解析代码块数据失败:", err);
+    // 监听 pdfCodeBlocks 消息
+    const handler = (event: MessageEvent) => {
+      const { command, data, result, blockIdx } = event.data;
+      if (command === 'pdfCodeBlocks') {
+        const rawBlocks = JSON.parse(data);
+        // 正确提取position和code字段
+        const parsedBlocks = rawBlocks.map((block: CodeBlockJson) => ({
+          language: block.language,
+          content: block.code, // 注意是code字段
+          page: block.page,
+          x: block.position?.[0] ?? 0,
+          y: block.position?.[1] ?? 0,
+          width: block.position?.[2] ?? 0,
+          height: block.position?.[3] ?? 0,
+        }));
+        setAllBlocks(parsedBlocks);
+        setSelectedBlocks([]);
+      } else if (command === 'runCodeResult') {
+        console.log('收到 runCodeResult 消息:', event.data);
+        const idx = typeof blockIdx === 'number' ? blockIdx
+                  : (data && typeof data.blockIdx === 'number' ? data.blockIdx : undefined);
+        const res = result ?? (data ? data.result : undefined);
+        if (typeof idx === 'number') {
+          setRunResults(prev => ({ ...prev, [idx]: res || '' }));
+        } else {
+          console.warn('runCodeResult missing blockIdx', event.data);
         }
       }
     };
-    
-    window.addEventListener('message', handleMessage);
-    
-    // 组件挂载后立即请求代码块数据
-    console.log('DisplayPage请求代码块数据，文件路径:', filePath);
-    if (vscode && filePath) {
-      setTimeout(() => {
-        vscode.postMessage({
-          command: 'requestCodeBlocks',
-          filePath: filePath
-        });
-        console.log('已发送requestCodeBlocks请求');
-      }, 500); // 增加延迟确保后端已准备好
-    }
-    
-    return () => {
-      console.log('DisplayPage移除消息监听器');
-      window.removeEventListener('message', handleMessage);
-    };
+    window.addEventListener('message', handler);
+    vscode?.postMessage({ command: 'openFile', filePath });
+    return () => window.removeEventListener('message', handler);
   }, [filePath, vscode]);
 
-  // 转换为标准CodeBlock格式
-  const codeBlocks: CodeBlock[] = codeBlocksRaw.map(block => ({
-    x: block.position[0],
-    y: block.position[1],
-    width: block.position[2],
-    height: block.position[3],
-    language: block.language || 'unknown',
-    content: block.code,
-    page: block.page,
-  }));
+  useEffect(() => {
+    // 当currentPage变化时，输出当前页码和当前页的代码块
+    const blocks = allBlocks.filter(b => b.page === currentPage);
+    console.log(`当前页码: ${currentPage}`);
+    console.log('当前页面中的代码块:', blocks);
+  }, [currentPage, allBlocks]);
 
-  // 过滤当前页面的代码块
-  const currentPageCodeBlocks = codeBlocks.filter(block => block.page === currentPage);
-
-  // 布局分配
-  const codeWidth = 15;
-  const pdfWidth = 70;
-  const rightWidth = 15;
+  // 代码块边框渲染组件
+  function CodeBlockBorders({ page }: { page: number }) {
+    // 只渲染当前页的代码块
+    return (
+      <>
+        {allBlocks.filter(b => b.page === page).map((block, idx) => (
+          <div
+            key={idx}
+            style={{
+              position: 'absolute',
+              left: `${block.x * 100}%`,
+              top: `${block.y * 100}%`,
+              width: `${block.width * 100}%`,
+              height: `${block.height * 100}%`,
+              border: '2px solid #f39c12',
+              boxSizing: 'border-box',
+              cursor: 'pointer',
+              zIndex: 10,
+              background: 'rgba(255, 230, 180, 0.08)',
+              color: '#333',
+              fontSize: 10,
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'flex-start',
+              pointerEvents: 'auto',
+            }}
+            title={block.language}
+            onClick={e => {
+              e.stopPropagation();
+              setSelectedBlocks(prev => prev.some(b => b === block) ? prev : [...prev, block]);
+            }}
+          >
+            <div style={{ background: 'rgba(255,255,255,0.7)', padding: '2px 4px', borderRadius: 2 }}>
+              页码: {block.page}<br />
+              x: {(block.x * 100).toFixed(2)}%<br />
+              y: {(block.y * 100).toFixed(2)}%<br />
+              w: {(block.width * 100).toFixed(2)}%<br />
+              h: {(block.height * 100).toFixed(2)}%
+            </div>
+          </div>
+        ))}
+      </>
+    );
+  }
 
   // 添加处理代码块编辑的函数
   const handleOpenCodeEditor = useCallback((block: CodeBlock) => {
-    const vscode = getVsCodeApi();
     if (vscode) {
       vscode.postMessage({
         command: 'openCodeInEditor',
@@ -149,13 +140,79 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
         language: block.language || 'text',
       });
     }
-  }, []);
+  }, [vscode]);
+
+  // 编辑器运行代码
+  const handleRunCode = (block: CodeBlock, idx: number) => {
+    vscode?.postMessage({
+      command: 'runCode',
+      code: block.content,
+      language: normalizeLanguage(block.language),
+      blockIdx: idx
+    });
+    setRunResults(prev => ({ ...prev, [idx]: '正在运行...' }));
+  };
+
+  function normalizeLanguage(lang: string) {
+    if (!lang) return 'Python';
+    const l = lang.trim().toLowerCase();
+    if (l === 'python' || l === 'python3') return 'Python';
+    if (l === 'c++' || l === 'cpp') return 'C++';
+    if (l === 'c') return 'C';
+    if (l === 'java') return 'Java';
+    return 'Python'; // 默认
+  }
+
+  if (openPanels.length === 0) {
+    return (
+      <div style={{ display: 'flex', height: '100vh' }}>
+        {/* 左侧代码编辑器区 */}
+        <div style={{ width: '20%', background: '#f8f8fa', overflowY: 'auto', padding: 8 }}>
+          {selectedBlocks.map((block, idx) => (
+            <div key={idx} style={{ marginBottom: 16, position: 'relative', background: '#fff', borderRadius: 6, boxShadow: '0 1px 4px #eee', padding: 8 }}>
+              <div style={{ fontWeight: 'bold', marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {block.language}
+                <button
+                  style={{ fontSize: 12, background: '#3498db', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}
+                  onClick={() => handleRunCode(block, idx)}
+                >运行</button>
+              </div>
+              <MonacoEditor
+                height="120"
+                language={block.language.toLowerCase()}
+                value={block.content}
+                options={{ readOnly: false, minimap: { enabled: false } }}
+              />
+              <div style={{ marginTop: 8, fontSize: 12, color: '#333', background: '#f6f6f6', borderRadius: 4, padding: 6, minHeight: 24 }}>
+                {runResults[idx] && <div>运行结果：<pre style={{ margin: 0 }}>{runResults[idx]}</pre></div>}
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* 中间PDF */}
+        <div style={{ width: '60%', position: 'relative' }}>
+          <PDFViewer filePath={filePath} onPageChange={setCurrentPage}>
+            <CodeBlockBorders page={currentPage} />
+          </PDFViewer>
+        </div>
+        {/* 右侧评论区 */}
+        <div style={{ width: '20%', background: '#f8f8fa' }}>
+          {/* 评论区内容 */}
+        </div>
+      </div>
+    );
+  }
+
+  // 布局分配
+  const codeWidth = 15;
+  const pdfWidth = 70;
+  const rightWidth = 15;
   
   return (
     <PanelGroup direction="horizontal">
       {/* 左侧代码区域 */}
-      <Panel defaultSize={codeWidth} minSize={15} maxSize={30}>
-        <CurrentPageCodeDisplay codeBlocks={currentPageCodeBlocks} />
+      <Panel defaultSize={codeWidth} minSize={15} maxSize={15}>
+        <CurrentPageCodeDisplay codeBlocks={currentPageBlocks} />
       </Panel>
       <PanelResizeHandle className={styles.resizeHandle} />
       
@@ -167,7 +224,7 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
         >
           <CommentOverlay data={comments} />
           <PageBoundCodeBlocks 
-            codeBlocks={codeBlocks}
+            codeBlocks={allBlocks}
             page={currentPage}
             onOpenCodeEditor={handleOpenCodeEditor}
           />
