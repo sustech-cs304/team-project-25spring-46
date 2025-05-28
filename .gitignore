@@ -11,3 +11,5 @@ design-46.md
 Design-46.md
 src/database.ts
 src/python_env.ts
+/vite_test/node_modules
+/.history
