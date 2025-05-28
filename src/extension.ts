@@ -3,8 +3,14 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { createNewCourse, getCourses, getCourseSubfolderFiles, getFileDetails, getFileAbsolutePath} from './courseService';
-import { exec } from 'child_process';
+import {
+    createNewCourse,
+    getCourses,
+    getCourseSubfolderFiles,
+    getFileDetails,
+    getFileAbsolutePath
+} from './courseService';
+import {exec} from 'child_process';
 import pool from './database';
 import supabase, { testSupabaseConnection } from './supabaseClient';
 import { generateAISummary, generateAIQuiz } from './AIsummarizer';
@@ -19,11 +25,9 @@ export function activate(context: vscode.ExtensionContext) {
 	// Restore currentUserId from persistent storage
 	currentUserId = context.globalState.get('currentUserId') || null;
 
-	// Activate comment service test
-
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "test-combine" is now active!');
+    // Use the console to output diagnostic information (console.log) and errors (console.error)
+    // This line of code will only be executed once when your extension is activated
+    console.log('Congratulations, your extension "test-combine" is now active!');
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
@@ -90,22 +94,22 @@ export function activate(context: vscode.ExtensionContext) {
 			connect-src ${cspSource} vscode-resource: blob: http://localhost:3000;
 			worker-src ${cspSource} blob:;
 		">`;
-		htmlContent = htmlContent.replace(/<head>/, `<head>\n  ${cspMetaTag}\n`);
-		htmlContent = htmlContent.replace(
-			/<body>/,
-			`<body>
+        htmlContent = htmlContent.replace(/<head>/, `<head>\n  ${cspMetaTag}\n`);
+        htmlContent = htmlContent.replace(
+            /<body>/,
+            `<body>
 			  <script>
 				window.__PDF_DOC__ = "${demoPdfUri}";
 				window.__PDF_WORKER__ = "${workerUri}";
 			  </script>`
-		  );
+        );
 
-		// 将处理后的 HTML 设置给 Webview
-		panel.webview.html = htmlContent;
+        // 将处理后的 HTML 设置给 Webview
+        panel.webview.html = htmlContent;
 
-		panel.webview.onDidReceiveMessage(
-			async message => {
-			  switch (message.command) {
+        panel.webview.onDidReceiveMessage(
+            async message => {
+                switch (message.command) {
 				case 'addComment':
 					try {
 						console.log("Extension - addComment message.data:", message.data); // 添加日志
@@ -118,18 +122,22 @@ export function activate(context: vscode.ExtensionContext) {
 						panel?.webview.postMessage({ command: 'addCommentResult', success: false, error: error.message });
 					}
 					break;
-				case 'createCourse':
-					try {
-						// 使用 VS Code API 获取用户输入的课程名
-						const courseName = await vscode.window.showInputBox({
-						prompt: "请输入新课程名称",
-						placeHolder: "例如：数据结构"
-						});
+                    case 'createCourse':
+                        try {
+                            // 使用 VS Code API 获取用户输入的课程名
+                            const courseName = await vscode.window.showInputBox({
+                                prompt: "请输入新课程名称",
+                                placeHolder: "例如：数据结构"
+                            });
 
-						if (!courseName) {
-						panel?.webview.postMessage({ command: 'createCourseResult', success: false, error: '未输入课程名' });
-						return;
-						}
+                            if (!courseName) {
+                                panel?.webview.postMessage({
+                                    command: 'createCourseResult',
+                                    success: false,
+                                    error: '未输入课程名'
+                                });
+                                return;
+                            }
 
 						const result = await createNewCourse(courseName);
 						panel?.webview.postMessage({ command: 'createCourseResult', success: true, data: result });
@@ -568,177 +576,176 @@ export function activate(context: vscode.ExtensionContext) {
 							return;
 						}
 
-						const { data, error } = await supabase
-							.from('users')
-							.delete()
-							.eq('id', userId)
-							.select();
+                            const {data, error} = await supabase
+                                .from('users')
+                                .delete()
+                                .eq('id', userId)
+                                .select();
 
-						if (error) {
-							panel?.webview.postMessage({
-								command: 'deleteUserResult',
-								success: false,
-								error: error.message
-							});
-							return;
-						}
+                            if (error) {
+                                panel?.webview.postMessage({
+                                    command: 'deleteUserResult',
+                                    success: false,
+                                    error: error.message
+                                });
+                                return;
+                            }
 
-						if (data.length === 0) {
-							panel?.webview.postMessage({
-								command: 'deleteUserResult',
-								success: false,
-								error: '用户不存在'
-							});
-							return;
-						}
+                            if (data.length === 0) {
+                                panel?.webview.postMessage({
+                                    command: 'deleteUserResult',
+                                    success: false,
+                                    error: '用户不存在'
+                                });
+                                return;
+                            }
 
-						panel?.webview.postMessage({
-							command: 'deleteUserResult',
-							success: true,
-							message: '用户删除成功',
-							user: data[0]
-						});
-					} catch (err: any) {
-						panel?.webview.postMessage({
-							command: 'deleteUserResult',
-							success: false,
-							error: err.message
-						});
-					}
-					break;
-				case 'getFriendsList':
-					try {
-						const userId = message.userId;
-						
-						if (!userId) {
-							panel?.webview.postMessage({
-								command: 'getFriendsListResult',
-								success: false,
-								error: '用户ID不能为空'
-							});
-							return;
-						}
+                            panel?.webview.postMessage({
+                                command: 'deleteUserResult',
+                                success: true,
+                                message: '用户删除成功',
+                                user: data[0]
+                            });
+                        } catch (err: any) {
+                            panel?.webview.postMessage({
+                                command: 'deleteUserResult',
+                                success: false,
+                                error: err.message
+                            });
+                        }
+                        break;
+                    case 'getFriendsList':
+                        try {
+                            const userId = message.userId;
 
-						const { data, error } = await supabase
-							.from('friends')
-							.select(`
+                            if (!userId) {
+                                panel?.webview.postMessage({
+                                    command: 'getFriendsListResult',
+                                    success: false,
+                                    error: '用户ID不能为空'
+                                });
+                                return;
+                            }
+
+                            const {data, error} = await supabase
+                                .from('friends')
+                                .select(`
 								friend_id,
 								users:friend_id (id, name)
 							`)
-							.eq('user_id', userId);
+                                .eq('user_id', userId);
 
-						if (error) {
-							panel?.webview.postMessage({
-								command: 'getFriendsListResult',
-								success: false,
-								error: error.message
-							});
-							return;
-						}
+                            if (error) {
+                                panel?.webview.postMessage({
+                                    command: 'getFriendsListResult',
+                                    success: false,
+                                    error: error.message
+                                });
+                                return;
+                            }
 
-						const friends = data.map((item: any) => ({
-							id: item.users.id,
-							name: item.users.name,
-							type: 'friend'
-						}));
+                            const friends = data.map((item: any) => ({
+                                id: item.users.id,
+                                name: item.users.name,
+                                type: 'friend'
+                            }));
 
-						panel?.webview.postMessage({
-							command: 'getFriendsListResult',
-							success: true,
-							friends: friends
-						});
-					} catch (err: any) {
-						panel?.webview.postMessage({
-							command: 'getFriendsListResult',
-							success: false,
-							error: err.message
-						});
-					}
-					break;
-				//添加好友
-				case 'newFriend':
-					try {
-						const { currentUserId, friendId } = message;
+                            console.log('friends: ', friends)
+                            panel?.webview.postMessage({
+                                command: 'getFriendsListResult',
+                                success: true,
+                                friends: friends
+                            });
+                        } catch (err: any) {
+                            panel?.webview.postMessage({
+                                command: 'getFriendsListResult',
+                                success: false,
+                                error: err.message
+                            });
+                        }
+                        break;
+                    case 'newFriend':
+                        try {
+                            const {currentUserId, friendId} = message;
 
-						if (!currentUserId || !friendId) {
-							panel?.webview.postMessage({
-								command: 'newFriendResult',
-								success: false,
-								error: 'currentUserId 和 friendId 是必需的'
-							});
-							return;
-						}
+                            if (!currentUserId || !friendId) {
+                                panel?.webview.postMessage({
+                                    command: 'newFriendResult',
+                                    success: false,
+                                    error: 'currentUserId 和 friendId 是必需的'
+                                });
+                                return;
+                            }
 
-						// 插入好友关系（双向）
-						const { error: error1 } = await supabase
-							.from('friends')
-							.insert([
-								{ user_id: currentUserId, friend_id: friendId },
-								{ user_id: friendId, friend_id: currentUserId }
-							]);
+                            // 插入好友关系（双向）
+                            const {error: error1} = await supabase
+                                .from('friends')
+                                .insert([
+                                    {user_id: currentUserId, friend_id: friendId},
+                                    {user_id: friendId, friend_id: currentUserId}
+                                ]);
 
-						if (error1 && !error1.message.includes('duplicate key')) {
-							panel?.webview.postMessage({
-								command: 'newFriendResult',
-								success: false,
-								error: error1.message
-							});
-							return;
-						}
+                            if (error1 && !error1.message.includes('duplicate key')) {
+                                panel?.webview.postMessage({
+                                    command: 'newFriendResult',
+                                    success: false,
+                                    error: error1.message
+                                });
+                                return;
+                            }
 
-						// 查询 friendId 对应的用户名
-						const { data, error: error2 } = await supabase
-							.from('users')
-							.select('name')
-							.eq('id', friendId)
-							.single();
+                            // 查询 friendId 对应的用户名
+                            const {data, error: error2} = await supabase
+                                .from('users')
+                                .select('name')
+                                .eq('id', friendId)
+                                .single();
 
-						if (error2) {
-							panel?.webview.postMessage({
-								command: 'newFriendResult',
-								success: false,
-								error: error2.message
-							});
-							return;
-						}
+                            if (error2) {
+                                panel?.webview.postMessage({
+                                    command: 'newFriendResult',
+                                    success: false,
+                                    error: error2.message
+                                });
+                                return;
+                            }
 
-						const friendName = data?.name || `用户${friendId}`;
+                            const friendName = data?.name || `用户${friendId}`;
 
-						panel?.webview.postMessage({
-							command: 'newFriendResult',
-							success: true,
-							friend: {
-								id: `${currentUserId}-${friendId}`,
-								name: friendName,
-								type: 'friend',
-								members: [currentUserId, friendId]
-							}
-						});
-					} catch (err: any) {
-						panel?.webview.postMessage({
-							command: 'newFriendResult',
-							success: false,
-							error: err.message
-						});
-					}
-					break;
-				//获取该用户所有群聊
-				case 'getGroupList':
-					try {
-						const userId = message.userId;
+                            panel?.webview.postMessage({
+                                command: 'newFriendResult',
+                                success: true,
+                                friend: {
+                                    id: `${currentUserId}-${friendId}`,
+                                    name: friendName,
+                                    type: 'friend',
+                                    members: [currentUserId, friendId]
+                                }
+                            });
+                        } catch (err: any) {
+                            panel?.webview.postMessage({
+                                command: 'newFriendResult',
+                                success: false,
+                                error: err.message
+                            });
+                        }
+                        break;
+                    case 'getGroupList':
+                        try {
+                            const userId = message.userId;
 
-						if (!userId) {
-							panel?.webview.postMessage({
-								command: 'getGroupListResult',
-								success: false,
-								error: '用户ID不能为空'
-							});
-							return;
-						}
+                            if (!userId) {
+                                panel?.webview.postMessage({
+                                    command: 'getGroupListResult',
+                                    success: false,
+                                    error: '用户ID不能为空'
+                                });
+                                return;
+                            }
 
-						const { data, error } = await supabase
-							.from('group_members')
-							.select(`
+                            const {data, error} = await supabase
+                                .from('group_members')
+                                .select(`
 								group_id,
 								groups (
 									id,
@@ -746,345 +753,494 @@ export function activate(context: vscode.ExtensionContext) {
 									owner
 								)
 							`)
-							.eq('member_id', userId);
+                                .eq('member_id', userId);
 
-						if (error) {
-							panel?.webview.postMessage({
-								command: 'getGroupListResult',
-								success: false,
-								error: error.message
-							});
-							return;
-						}
+                            if (error) {
+                                panel?.webview.postMessage({
+                                    command: 'getGroupListResult',
+                                    success: false,
+                                    error: error.message
+                                });
+                                return;
+                            }
 
-						// 整理格式：将 group_members + groups 转为纯 group 列表
-						const groups = data.map((item: any) => ({
-							id: item.groups.id,
-							name: item.groups.name,
-							type: 'group',
-							groupOwner: item.groups.owner
-						}));
+                            // 整理格式：将 group_members + groups 转为纯 group 列表
+                            const groups = data.map((item: any) => ({
+                                id: item.groups.id,
+                                name: item.groups.name,
+                                type: 'group',
+                                groupOwner: item.groups.owner
+                            }));
 
-						panel?.webview.postMessage({
-							command: 'getGroupListResult',
-							success: true,
-							groups: groups
-						});
-					} catch (err: any) {
-						panel?.webview.postMessage({
-							command: 'getGroupListResult',
-							success: false,
-							error: err.message
-						});
-					}
-					break;
-				//创建群聊
-				case 'createGroup':
-					try {
-						const { name, userIds, ownerId } = message;
+                            console.log('groups: ', groups)
+                            panel?.webview.postMessage({
+                                command: 'getGroupListResult',
+                                success: true,
+                                groups: groups
+                            });
+                        } catch (err: any) {
+                            panel?.webview.postMessage({
+                                command: 'getGroupListResult',
+                                success: false,
+                                error: err.message
+                            });
+                        }
+                        break;
+                    case 'createGroup':
+                        try {
+                            let {name, userIds, ownerId} = message;
+                            userIds = Array.from(new Set(
+                                userIds
+                                    .map((id: string | number) => Number(id))
+                                    .filter((id: number) => !isNaN(id))  // 移除无效的 NaN
+                            ));
 
-						// 参数校验
-						if (!name || !Array.isArray(userIds) || userIds.length < 2 || !ownerId) {
-							panel?.webview.postMessage({
-								command: 'createGroupResult',
-								success: false,
-								error: '缺少群聊名称、成员列表或群主 ID'
-							});
-							return;
-						}
+                            console.log(userIds)
+                            // 参数校验
+                            if (!name || !Array.isArray(userIds) || userIds.length < 2 || !ownerId) {
+                                panel?.webview.postMessage({
+                                    command: 'createGroupResult',
+                                    success: false,
+                                    error: '缺少群聊名称、成员列表或群主 ID'
+                                });
+                                return;
+                            }
 
-						// 插入 groups 表
-						const { data: groupData, error: insertGroupError } = await supabase
-							.from('groups')
-							.insert([{ name, owner: ownerId }])
-							.select()
-							.single();
+                            // 插入 groups 表
+                            const {data: groupData, error: insertGroupError} = await supabase
+                                .from('groups')
+                                .insert([{name, owner: ownerId}])
+                                .select()
+                                .single();
 
-						if (insertGroupError) {
-							panel?.webview.postMessage({
-								command: 'createGroupResult',
-								success: false,
-								error: insertGroupError.message
-							});
-							return;
-						}
-						const group = groupData;
+                            if (insertGroupError) {
+                                console.log('create group fail insert group!!!!')
 
-						// 插入 group_members（防止重复）
-						const memberRows = userIds.map((userId: number) => ({
-							group_id: group.id,
-							member_id: userId,
-						}));
+                                panel?.webview.postMessage({
+                                    command: 'createGroupResult',
+                                    success: false,
+                                    error: insertGroupError.message
+                                });
+                                return;
+                            }
+                            const group = groupData;
 
-						const { error: insertMembersError } = await supabase
-							.from('group_members')
-							.upsert(memberRows, { onConflict: 'group_id,member_id' });
+                            // 插入 group_members（防止重复）
+                            const memberRows = userIds.map((userId: number) => ({
+                                group_id: group.id,
+                                member_id: userId,
+                            }));
 
-						if (insertMembersError) {
-							panel?.webview.postMessage({
-								command: 'createGroupResult',
-								success: false,
-								error: insertMembersError.message
-							});
-							return;
-						}
+                            const {error: insertMembersError} = await supabase
+                                .from('group_members')
+                                .upsert(memberRows, {onConflict: 'group_id,member_id'});
 
-						// 查询用户信息
-						const { data: memberUsers, error: userQueryError } = await supabase
-							.from('users')
-							.select('id, name, email, role')
-							.in('id', userIds);
+                            if (insertMembersError) {
+                                console.log(memberRows)
+                                console.log('create group fail insert member !!!!')
+                                panel?.webview.postMessage({
+                                    command: 'createGroupResult',
+                                    success: false,
+                                    error: insertMembersError.message
+                                });
+                                return;
+                            }
 
-						if (userQueryError) {
-							panel?.webview.postMessage({
-								command: 'createGroupResult',
-								success: false,
-								error: userQueryError.message
-							});
-							return;
-						}
+                            // 查询用户信息
+                            const {data: memberUsers, error: userQueryError} = await supabase
+                                .from('users')
+                                .select('id, name, email, role')
+                                .in('id', userIds);
 
-						panel?.webview.postMessage({
-							command: 'createGroupResult',
-							success: true,
-							group: {
-								id: group.id,
-								name: group.name,
-								type: 'group',
-								groupOwner: group.owner,
-								members: memberUsers
-							}
-						});
-					} catch (err: any) {
-						panel?.webview.postMessage({
-							command: 'createGroupResult',
-							success: false,
-							error: err.message
-						});
-					}
-					break;
-				//获取私聊好友消息
-				case 'getFriendMessages':
-					try {
-						const { userId, friendId } = message;
+                            if (userQueryError) {
+                                console.log('create group fail query member !!!!')
+                                panel?.webview.postMessage({
+                                    command: 'createGroupResult',
+                                    success: false,
+                                    error: userQueryError.message
+                                });
+                                return;
+                            }
 
-						if (!userId || !friendId) {
-							panel?.webview.postMessage({
-								command: 'getFriendMessagesResult',
-								success: false,
-								error: '用户ID和好友ID不能为空'
-							});
-							return;
-						}
+                            console.log('create group success!!!!')
+                            panel?.webview.postMessage({
+                                command: 'createGroupResult',
+                                success: true,
+                                group: {
+                                    id: group.id,
+                                    name: group.name,
+                                    type: 'group',
+                                    groupOwner: group.owner,
+                                    members: memberUsers
+                                }
+                            });
+                        } catch (err: any) {
+                            panel?.webview.postMessage({
+                                command: 'createGroupResult',
+                                success: false,
+                                error: err.message
+                            });
+                        }
+                        break;
+                    case 'getFriendMessages':
+                        try {
+                            const {userId, friendId} = message;
 
-						const { data, error } = await supabase
-							.from('friend_message')
-							.select(`
+                            if (!userId || !friendId) {
+                                panel?.webview.postMessage({
+                                    command: 'getFriendMessagesResult',
+                                    success: false,
+                                    error: '用户ID和好友ID不能为空'
+                                });
+                                return;
+                            }
+
+                            const {data, error} = await supabase
+                                .from('friend_message')
+                                .select(`
 								text,
 								time,
 								sender,
 								users:sender (id, name, email, role)
 							`)
-							.or(`sender.eq.${userId},sender.eq.${friendId}`)
-							.or(`receiver.eq.${userId},receiver.eq.${friendId}`)
-							.order('time', { ascending: true });
+                                .or(`sender.eq.${userId},sender.eq.${friendId}`)
+                                .or(`receiver.eq.${userId},receiver.eq.${friendId}`)
+                                .order('time', {ascending: true});
 
-						if (error) {
-							panel?.webview.postMessage({
-								command: 'getFriendMessagesResult',
-								success: false,
-								error: error.message
-							});
-							return;
-						}
+                            if (error) {
+                                panel?.webview.postMessage({
+                                    command: 'getFriendMessagesResult',
+                                    success: false,
+                                    error: error.message
+                                });
+                                return;
+                            }
 
-						const messages = data.map((msg: any) => ({
-							text: msg.text,
-							time: msg.time,
-							sender_name: msg.users?.name || `用户${msg.sender}`,
-							sender_id: msg.users?.id || msg.sender,
-							sender_email: msg.users?.email || '',
-							sender_role: msg.users?.role || ''
-						}));
+                            const messages = data.map((msg: any) => ({
+                                text: msg.text,
+                                time: msg.time,
+                                sender_name: msg.users?.name || `用户${msg.sender}`,
+                                sender_id: msg.users?.id || msg.sender,
+                                sender_email: msg.users?.email || '',
+                                sender_role: msg.users?.role || ''
+                            }));
 
-						panel?.webview.postMessage({
-							command: 'getFriendMessagesResult',
-							success: true,
-							messages: messages
-						});
-					} catch (err: any) {
-						panel?.webview.postMessage({
-							command: 'getFriendMessagesResult',
-							success: false,
-							error: err.message
-						});
-					}
-					break;
-				//发送私聊消息
-				case 'sendFriendsMessage':
-					try {
-						const { sender, receiver, text } = message;
+                            panel?.webview.postMessage({
+                                command: 'getFriendMessagesResult',
+                                success: true,
+                                messages: messages
+                            });
+                        } catch (err: any) {
+                            panel?.webview.postMessage({
+                                command: 'getFriendMessagesResult',
+                                success: false,
+                                error: err.message
+                            });
+                        }
+                        break;
+                    case 'sendFriendsMessage':
+                        try {
+                            const {sender, receiver, text} = message;
 
-						if (!sender || !receiver || !text) {
-							panel?.webview.postMessage({
-								command: 'sendFriendsMessageResult',
-								success: false,
-								error: '发送者、接收者和消息内容不能为空'
-							});
-							return;
-						}
+                            if (!sender || !receiver || !text) {
+                                panel?.webview.postMessage({
+                                    command: 'sendFriendsMessageResult',
+                                    success: false,
+                                    error: '发送者、接收者和消息内容不能为空'
+                                });
+                                return;
+                            }
 
-						const { data, error } = await supabase
-							.from('friend_message')
-							.insert([
-								{ sender, receiver, text }
-							])
-							.select()
-							.single();
+                            const {data, error} = await supabase
+                                .from('friend_message')
+                                .insert([
+                                    {sender, receiver, text}
+                                ])
+                                .select()
+                                .single();
 
-						if (error) {
-							panel?.webview.postMessage({
-								command: 'sendFriendsMessageResult',
-								success: false,
-								error: error.message
-							});
-							return;
-						}
+                            if (error) {
+                                panel?.webview.postMessage({
+                                    command: 'sendFriendsMessageResult',
+                                    success: false,
+                                    error: error.message
+                                });
+                                return;
+                            }
 
-						panel?.webview.postMessage({
-							command: 'sendFriendsMessageResult',
-							success: true,
-							message: data
-						});
-					} catch (err: any) {
-						panel?.webview.postMessage({
-							command: 'sendFriendsMessageResult',
-							success: false,
-							error: err.message
-						});
-					}
-					break;
-				//获取群聊消息
-				case 'getGroupMessages':
-					try {
-						const { groupId } = message;
+                            panel?.webview.postMessage({
+                                command: 'sendFriendsMessageResult',
+                                success: true,
+                                message: data
+                            });
+                        } catch (err: any) {
+                            panel?.webview.postMessage({
+                                command: 'sendFriendsMessageResult',
+                                success: false,
+                                error: err.message
+                            });
+                        }
+                        break;
+                    case 'getGroupMessages':
+                        try {
+                            const {groupId} = message;
 
-						if (!groupId) {
-							panel?.webview.postMessage({
-								command: 'getGroupMessagesResult',
-								success: false,
-								error: '群组ID不能为空'
-							});
-							return;
-						}
+                            if (!groupId) {
+                                panel?.webview.postMessage({
+                                    command: 'getGroupMessagesResult',
+                                    success: false,
+                                    error: '群组ID不能为空'
+                                });
+                                return;
+                            }
 
-						const { data, error } = await supabase
-							.from('group_message')
-							.select(`
+                            const {data, error} = await supabase
+                                .from('group_message')
+                                .select(`
 								text,
 								time,
 								sender,
 								users:sender (id, name, email, role)
 							`)
-							.eq('group_id', groupId)
-							.order('time', { ascending: true });
+                                .eq('group_id', groupId)
+                                .order('time', {ascending: true});
 
-						if (error) {
-							panel?.webview.postMessage({
-								command: 'getGroupMessagesResult',
-								success: false,
-								error: error.message
-							});
-							return;
-						}
+                            if (error) {
+                                panel?.webview.postMessage({
+                                    command: 'getGroupMessagesResult',
+                                    success: false,
+                                    error: error.message
+                                });
+                                return;
+                            }
 
-						const messages = data.map((msg: any) => ({
-							text: msg.text,
-							time: msg.time,
-							sender_name: msg.users?.name || `用户${msg.sender}`,
-							sender_id: msg.users?.id || msg.sender,
-							sender_email: msg.users?.email || '',
-							sender_role: msg.users?.role || ''
-						}));
+                            const messages = data.map((msg: any) => ({
+                                text: msg.text,
+                                time: msg.time,
+                                sender_name: msg.users?.name || `用户${msg.sender}`,
+                                sender_id: msg.users?.id || msg.sender,
+                                sender_email: msg.users?.email || '',
+                                sender_role: msg.users?.role || ''
+                            }));
 
-						panel?.webview.postMessage({
-							command: 'getGroupMessagesResult',
-							success: true,
-							messages: messages
-						});
-					} catch (err: any) {
-						panel?.webview.postMessage({
-							command: 'getGroupMessagesResult',
-							success: false,
-							error: err.message
-						});
-					}
-					break;
-				//发送群聊消息
-				case 'sendGroupMessage':
-					try {
-						const { group_id, sender, text } = message;
+                            panel?.webview.postMessage({
+                                command: 'getGroupMessagesResult',
+                                success: true,
+                                messages: messages
+                            });
+                        } catch (err: any) {
+                            panel?.webview.postMessage({
+                                command: 'getGroupMessagesResult',
+                                success: false,
+                                error: err.message
+                            });
+                        }
+                        break;
+                    case 'sendGroupMessage':
+                        try {
+                            const {group_id, sender, text} = message;
 
-						if (!group_id || !sender || !text) {
-							panel?.webview.postMessage({
-								command: 'sendGroupMessageResult',
-								success: false,
-								error: '群组ID、发送者和消息内容不能为空'
-							});
-							return;
-						}
+                            if (!group_id || !sender || !text) {
+                                panel?.webview.postMessage({
+                                    command: 'sendGroupMessageResult',
+                                    success: false,
+                                    error: '群组ID、发送者和消息内容不能为空'
+                                });
+                                return;
+                            }
 
-						const { data, error } = await supabase
-							.from('group_message')
-							.insert([
-								{ group_id, sender, text }
-							])
-							.select()
-							.single();
+                            const {data, error} = await supabase
+                                .from('group_message')
+                                .insert([
+                                    {group_id, sender, text}
+                                ])
+                                .select()
+                                .single();
 
-						if (error) {
-							panel?.webview.postMessage({
-								command: 'sendGroupMessageResult',
-								success: false,
-								error: error.message
-							});
-							return;
-						}
+                            if (error) {
+                                panel?.webview.postMessage({
+                                    command: 'sendGroupMessageResult',
+                                    success: false,
+                                    error: error.message
+                                });
+                                return;
+                            }
 
-						panel?.webview.postMessage({
-							command: 'sendGroupMessageResult',
-							success: true,
-							message: data
-						});
-					} catch (err: any) {
-						panel?.webview.postMessage({
-							command: 'sendGroupMessageResult',
-							success: false,
-							error: err.message
-						});
-					}
-					break;
-				case 'getProjects':
-				try {
-				const projects = await getProjects();
-				panel?.webview.postMessage({ command: 'projectsData', projects });
-				} catch (error: any) {
-				panel?.webview.postMessage({ command: 'error', error: error.message });
-				}
-				break;
-				default:
-				  vscode.window.showInformationMessage(`未识别的命令: ${message.command}`);
-				  console.log(`未识别的命令: ${message.command}`);
-				break;
-				}
-			},
-			undefined,
-			context.subscriptions
-		);
-		// createNewCourse("DemoCourse");
-		const courses = await getCourses();
-		console.log(courses);
-	});
+                            panel?.webview.postMessage({
+                                command: 'sendGroupMessageResult',
+                                success: true,
+                                message: data
+                            });
+                        } catch (err: any) {
+                            panel?.webview.postMessage({
+                                command: 'sendGroupMessageResult',
+                                success: false,
+                                error: err.message
+                            });
+                        }
+                        break;
+                    case 'getProjects':
+                        try {
+                            const projects = await getProjects();
+                            panel?.webview.postMessage({command: 'projectsData', projects});
+                        } catch (error: any) {
+                            panel?.webview.postMessage({command: 'error', error: error.message});
+                        }
+                        break;
+                    case 'getGroupTasks':
+                        try {
+                            const groupId = message.groupId;
+                            if (!groupId) {
+                                panel?.webview.postMessage({
+                                    command: 'getGroupTasksResult',
+                                    success: false,
+                                    error: '未提供群组 ID'
+                                });
+                                return;
+                            }
+
+                            interface TaskWithRelations {
+                                id: number;
+                                title: string;
+                                details: string | null;
+                                due_date: string;
+                                status: string;
+                                priority: string;
+                                completion: boolean;
+                                group_id: number | null;
+                                assignee_id: number | null;
+                                groups: { id: number; name: string } | null;
+                                users: { id: number; name: string } | null;
+                            }
+
+                            const {data, error} = await supabase
+                                .from('tasks')
+                                .select(`
+                                    id,
+                                    title,
+                                    details,
+                                    due_date,
+                                    status,
+                                    priority,
+                                    completion,
+                                    group_id,
+                                    assignee_id,
+                                    groups:group_id (
+                                        id,
+                                        name
+                                    ),
+                                    users:assignee_id (
+                                        id,
+                                        name
+                                    )
+                                `)
+                                .eq('group_id', groupId)
+                                .order('due_date', { ascending: true });
+
+                            if (error) {
+                                panel?.webview.postMessage({
+                                    command: 'getGroupTasksResult',
+                                    success: false,
+                                    error: error.message
+                                });
+                                return;
+                            }
+
+                            // Transform the data to include group and assignee names
+                            const tasks = ((data as unknown) as TaskWithRelations[]).map(task => ({
+                                ...task,
+                                group_name: task.groups?.name || null,
+                                assignee_name: task.users?.name || null,
+                                groups: undefined, // Remove the nested objects
+                                users: undefined
+                            }));
+
+                            panel?.webview.postMessage({
+                                command: 'getGroupTasksResult',
+                                success: true,
+                                tasks: tasks
+                            });
+                        } catch (error: any) {
+                            panel?.webview.postMessage({
+                                command: 'getGroupTasksResult',
+                                success: false,
+                                error: error.message
+                            });
+                        }
+                        break;
+                        //////////////
+                    case 'getGroupUsers':
+                        try {
+                            const groupId = message.groupId;
+                            if (!groupId) {
+                                panel?.webview.postMessage({
+                                    command: 'getGroupUsersResult',
+                                    success: false,
+                                    error: '未提供群组 ID'
+                                });
+                                return;
+                            }
+
+                            const {data, error} = await supabase
+                                .from('group_members')
+                                .select(`
+                                    member_id,
+                                    users:member_id (
+                                        id,
+                                        name,
+                                        email,
+                                        role
+                                    )
+                                `)
+                                .eq('group_id', groupId);
+
+                            if (error) {
+                                panel?.webview.postMessage({
+                                    command: 'getGroupUsersResult',
+                                    success: false,
+                                    error: error.message
+                                });
+                                return;
+                            }
+
+                            // Transform the data to get only user information
+                            const users = data.map((item: any) => ({
+                                id: item.users.id,
+                                name: item.users.name,
+                                email: item.users.email,
+                                role: item.users.role
+                            }));
+
+                            panel?.webview.postMessage({
+                                command: 'getGroupUsersResult',
+                                success: true,
+                                users: users
+                            });
+                        } catch (error: any) {
+                            panel?.webview.postMessage({
+                                command: 'getGroupUsersResult',
+                                success: false,
+                                error: error.message
+                            });
+                        }
+                        break;
+
+
+                        ///////////////////////
+                        
+                    default:
+                        vscode.window.showInformationMessage(`未识别的命令: ${message.command}`);
+                        console.log(`未识别的命令: ${message.command}`);
+                        break;
+                }
+            },
+            undefined,
+            context.subscriptions
+        );
+        // createNewCourse("DemoCourse");
+        const courses = await getCourses();
+        console.log(courses);
+    });
 
 	context.subscriptions.push(disposable);
 
@@ -1111,7 +1267,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 function getCatWebviewContent() {
-	return`
+    return `
 		  <!DOCTYPE html>
 		  <html lang="en">
 		  <head>
@@ -1127,4 +1283,5 @@ function getCatWebviewContent() {
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+}

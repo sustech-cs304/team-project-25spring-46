@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import pool from './database';
 import * as vscode from 'vscode';
+import supabase from './supabaseClient';
 // import { getCurrentUserId } from './authService'; // 你需要根据实际项目替换路径
 import { pathToFileURL } from 'url';
 /**
@@ -127,7 +128,55 @@ export async function getProjectTasks(projectId: number): Promise<{ id: number; 
   }
 }
 
+export interface TaskFormData {
+  title: string;
+  details?: string;
+  due_date: string;
+  priority: string;
+  status: string;
+  group_id?: number;
+  assignee_id?: number;
+}
 
+export async function getGroupTasks(groupId: number): Promise<{
+  id: number;
+  title: string;
+  details: string | null;
+  due_date: string;
+  status: string;
+  priority: string;
+  assignee_id: number | null;
+  assignee_name: string | null;
+}[]> {
+  try {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select(`
+        id,
+        title,
+        details,
+        due_date,
+        status,
+        priority,
+        assignee_id,
+        users:assignee_id(name)
+      `)
+      .eq('group_id', groupId);
+
+    if (error) {
+      throw error;
+    }
+
+    // Transform the data to include assignee_name
+    return data.map(task => ({
+      ...task,
+      assignee_name: task.users?.[0]?.name || null
+    }));
+  } catch (error) {
+    console.error('Error fetching group tasks:', error);
+    throw error;
+  }
+}
 
 /**
  * - 根据传入的 taskId 更新任务信息：
