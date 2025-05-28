@@ -1,13 +1,4 @@
-/*
- * @Author: hatfail 1833943280@qq.com
- * @Date: 2025-05-19 16:27:25
- * @LastEditors: hatfail 1833943280@qq.com
- * @LastEditTime: 2025-05-27 22:36:23
- * @FilePath: \team-project-25spring-46\vite_test\src\pages\DemoPage.tsx
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
- */
 // src/pages/DemoPage.tsx
-import React, { useState, useEffect } from 'react';
 import React, { useState, useEffect } from 'react';
 import { SidePanelProvider, useSidePanel } from './SidePanelContext';
 import PDFViewer from './PDFViewer';
@@ -26,7 +17,10 @@ import { CommentData, CodeSnippetData } from '../types/annotations';
 // ];
 
 const dummyCodeBlocks: CodeSnippetData[] = [
-  { id: 'code1', page: 2, content: 'console.log("Hello World");', position: { x: 0.5, y: 0.5, width: 0.6, height: 0.1 }, language: "Unknown" }
+  {
+    id: 'code1', page: 2, content: 'console.log("Hello World");', position: { x: 0.5, y: 0.5, width: 0.6, height: 0.1 },
+    language: ''
+  }
 ];
 
 const PageLayout: React.FC = () => {
@@ -49,9 +43,6 @@ const PageLayout: React.FC = () => {
   const hasCodePanel = openPanels.some(p => p.type === 'code');
   const leftSize = hasCodePanel ? 60 : 70;
   const rightSize = 100 - leftSize;
-
-  // const [PdfWorkerPath, setPdfWorkerPath] = useState('');
-
 
   // const [PdfWorkerPath, setPdfWorkerPath] = useState('');
 
