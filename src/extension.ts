@@ -47,7 +47,10 @@ export function activate(context: vscode.ExtensionContext) {
 			  retainContextWhenHidden: true,
 			  localResourceRoots: [
 				vscode.Uri.file(path.join(context.extensionPath, 'dist')),
-				vscode.Uri.file('C:/')
+				vscode.Uri.file('C:/'),
+				vscode.Uri.file('c:/'),
+				vscode.Uri.file('D:/'),
+				vscode.Uri.file('d:/')
 			  ]
 			}
 		);
