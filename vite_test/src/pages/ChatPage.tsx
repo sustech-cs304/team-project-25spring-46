@@ -64,18 +64,18 @@ const ChatPage: React.FC = () => {
     const [newTaskPriority, setNewTaskPriority] = useState('medium');
     const [newTaskAssignee, setNewTaskAssignee] = useState<string>('');
     const [groupMembers, setGroupMembers] = useState<User[]>([]);
+    const [showGroupMembersModal, setShowGroupMembersModal] = useState(false);
 
     // Modal states
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalType, setModalType] = useState<'friend' | 'group' | null>(null);
     const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
     const [groupName, setGroupName] = useState('');
-
-    useEffect(() => {
-        // 初始化加载用户 ID 和用户列表
-        vscode?.postMessage({command: 'getCurrentUserid'});
-        vscode?.postMessage({command: 'getUsers'});
-    }, []); // 只在初次加载时运行
+  useEffect(() => {
+    // 初始化加载用户 ID 和用户列表
+    vscode?.postMessage({ command: 'getCurrentUserid' });
+    vscode?.postMessage({ command: 'getUsers' });
+  }, []); // 只在初次加载时运行
 
     useEffect(() => {
         // 监听 message 事件处理各种结果
@@ -179,7 +179,12 @@ const ChatPage: React.FC = () => {
                         setNewMessage('');
                     }
                     break;
-
+                case 'getGroupUsersResult':
+                    if (msg.success && msg.users) {
+                        setGroupMembers(msg.users); // 重用已存在的 selectedUsers 状态
+                        setShowGroupMembersModal(true);
+                    }
+                    break;
                 case 'getGroupTasksResult':
                     if (msg.success) {
                         setTasks(msg.tasks);
@@ -196,13 +201,6 @@ const ChatPage: React.FC = () => {
                         });
                     }
                     break;
-
-                case 'getGroupUsersResult':
-                    if (msg.success) {
-                        setGroupMembers(msg.users);
-                    }
-                    break;
-
             }
         };
 
@@ -465,6 +463,14 @@ const ChatPage: React.FC = () => {
                     <>
                         <div className="chat-header">
                             <h3>{selectedChat.name}</h3>
+                            {selectedChat.type === 'group' && (
+                                <button
+                                    className="view-members-button"
+                                    onClick={() => vscode?.postMessage({ command: 'getGroupUsers', groupId: selectedChat.id })}
+                                >
+                                    查看群成员
+                                </button>
+                            )}
                         </div>
                         <div className="messages">
                             {selectedChat.messages?.map((message, index) => (
@@ -496,7 +502,7 @@ const ChatPage: React.FC = () => {
                             <div className="task-section">
                                 <div className="task-header">
                                     <h3>Group Tasks</h3>
-                                    <button onClick={() => setIsTaskModalOpen(true)}>Create Task</button>
+                                    <button className="task-header-button" onClick={() => setIsTaskModalOpen(true)}>Create Task</button>
                                 </div>
                                 <div className="task-list">
                                     {tasks.map(task => (
@@ -511,8 +517,8 @@ const ChatPage: React.FC = () => {
                                                 </div>
                                             </div>
                                             <div className="task-actions">
-                                                <button onClick={() => handleUpdateTask(task)}>Edit</button>
-                                                <button onClick={() => handleDeleteTask(task.id)}>Delete</button>
+                                                <button className="task-action-button" onClick={() => handleUpdateTask(task)}>Edit</button>
+                                                <button className="task-action-button" onClick={() => handleDeleteTask(task.id)}>Delete</button>
                                             </div>
                                         </div>
                                     ))}
@@ -634,6 +640,30 @@ const ChatPage: React.FC = () => {
                 <button onClick={handleCreateChat}>
                     {modalType === 'friend' ? 'Add Friend' : 'Create Group'}
                 </button>
+            </Modal>
+
+            <Modal
+                isOpen={showGroupMembersModal}
+                onRequestClose={() => setShowGroupMembersModal(false)}
+                className="modal-content"
+                overlayClassName="modal-overlay"
+            >
+                <h2>群成员</h2>
+                <div className="user-list">
+                    {groupMembers.map(user => (
+                        <div
+                            key={user.id}
+                            className="user-item"
+                            data-avatar={user.name?.charAt(0).toUpperCase() || '?'}
+                        >
+                            <div>
+                                <div>{user.name}</div>
+                                <div style={{ fontSize: '12px', color: '#666' }}>{user.email}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <button onClick={() => setShowGroupMembersModal(false)}>关闭</button>
             </Modal>
         </div>
     );
