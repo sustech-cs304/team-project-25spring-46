@@ -373,11 +373,16 @@ const ChatPage: React.FC = () => {
                 key={user.id}
                 className={`user-item ${selectedUsers.some(u => u.id === user.id) ? 'selected' : ''}`}
                 onClick={() => handleUserSelection(user)}
+                data-avatar={user.name?.charAt(0).toUpperCase() || '?'}
               >
-                {user.name}
+                <div>
+                  <div>{user.name}</div>
+                  <div>{user.email || '无邮箱信息'}</div>
+                </div>
               </div>
             ))}
         </div>
+
         <button
           onClick={handleCreateChat}
         // disabled={
