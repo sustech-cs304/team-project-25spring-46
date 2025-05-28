@@ -48,6 +48,33 @@ export default function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  const handleCourseClick = (courseName: string) => {
+    setSelectedCourse(courseName);
+    setCurrentPage('CoursePage');
+  };
+
+  // 处理来自后端的登出和获取当前用户消息
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      const msg = e.data;
+      if (msg.command === 'logoutResult' && msg.success) {
+        setUser(null);
+        setCurrentPage('LoginPage');
+      }
+      if (msg.command === 'currentUseridResult') {
+        // 如果未登录，保持在登录页
+        if (!msg.userId) {
+          setUser(null);
+          setCurrentPage('LoginPage');
+        }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    // 启动时询问一下后端当前登录状态
+    vscode?.postMessage({ command: 'getCurrentUserid' });
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const handleLoginSuccess = (u: UserInfo) => {
     setUser(u);
     setCurrentPage('HomePage');
@@ -56,15 +83,12 @@ export default function App() {
     setUser(u);
     setCurrentPage('HomePage');
   };
+
   const handleLogout = () => {
     vscode?.postMessage({ command: 'logout' });
   };
 
-  const handleCourseClick = (courseName: string) => {
-    setSelectedCourse(courseName);
-    setCurrentPage('CoursePage');
-  };
-
+  // 渲染切页
   const renderPage = () => {
     if (!user) {
       return currentPage === 'RegisterPage'
@@ -102,8 +126,6 @@ export default function App() {
       case 'DemoPage':
         return <DemoPage />;
       case "ChatPage": return <ChatPage />;
-      case 'CalendarPage':return <CalendarPage />;
-      case 'DemoPage':    return <DemoPage />;
       case 'CodeEditorPage': return <CodeEditorPage />
       default:            return <HomePage onCourseClick={handleCourseClick} />;
     }
@@ -123,7 +145,7 @@ export default function App() {
               <option value="HomePage">主页</option>
               <option value="CoursePage">课程页面</option>
               <option value="CalendarPage">我的任务</option>
-              <option value="ChatPage">💬 聊天页面</option>
+              <option value="ChatPage">聊天页面</option>
               <option value="CodeEditorPage">代码编辑和运行</option>
             </select>
             <button

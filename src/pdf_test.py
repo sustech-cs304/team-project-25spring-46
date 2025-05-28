@@ -64,6 +64,7 @@ def parse_pdf(pdf_path, file_name, output_dir):
     doc = fitz.open(file_path)
     for page in doc:
         width, height = page.rect.width, page.rect.height
+        width, height = page.rect.width, page.rect.height
         text = page.get_text()
         page_id += 1
         

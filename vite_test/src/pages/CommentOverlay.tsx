@@ -40,6 +40,9 @@ const CommentOverlay: React.FC<Props> = ({ data: comments, onPDFClick, onMouseMo
         const pos = comment.position;
         if (!pos) return null;
 
+        const pos = comment.position;
+        if (!pos) return null;
+
         if (comment.type === 'text' && 'x' in pos && 'y' in pos) {
             const left = metric.offsetX + pos.x * metric.width;
             const top = metric.offsetY + pos.y * metric.height;

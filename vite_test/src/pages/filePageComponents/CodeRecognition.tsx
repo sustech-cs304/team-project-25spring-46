@@ -11,7 +11,6 @@ export interface CodeBlock {
     content: string;
     page: number;
 }
-
 interface CodeRecognitionProps {
     filePath: string;
 }

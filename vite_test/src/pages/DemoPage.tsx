@@ -8,6 +8,7 @@
  */
 // src/pages/DemoPage.tsx
 import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SidePanelProvider, useSidePanel } from './SidePanelContext';
 import PDFViewer from './PDFViewer';
 import CommentOverlay from './CommentOverlay';
@@ -48,6 +49,9 @@ const PageLayout: React.FC = () => {
   const hasCodePanel = openPanels.some(p => p.type === 'code');
   const leftSize = hasCodePanel ? 60 : 70;
   const rightSize = 100 - leftSize;
+
+  // const [PdfWorkerPath, setPdfWorkerPath] = useState('');
+
 
   // const [PdfWorkerPath, setPdfWorkerPath] = useState('');
 

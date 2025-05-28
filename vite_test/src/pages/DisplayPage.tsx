@@ -3,16 +3,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { SidePanelProvider, useSidePanel } from './SidePanelContext';
 import PDFViewer from './PDFViewer';
 import CommentOverlay from './CommentOverlay';
-import CodeAnnotation from './CodeAnnotation';
 import SidePanelContainer from './SidePanelContainer';
 import CommentToolbar, { CommentMode } from './CommentToolbar';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { CommentData, CodeSnippetData, RawCommentInput } from '../types/annotations';
+import { CommentData, RawCommentInput } from '../types/annotations';
 import { getVsCodeApi } from '../vscodeApi';
 import { usePDFMetrics } from './PDFViewer';
-import { CodeBlockOverlay } from './filePageComponents/CodeBlockOverlay';
-import type { CodeBlock } from './filePageComponents/CodeRecognition'
-import { CodeBlockSidebar } from './filePageComponents/CodeBlockSidebar';
+// import type { CodeBlock } from './filePageComponents/CodeRecognition'
 interface DisplayPageProps {
   filePath: string;
   username: string;
@@ -45,12 +42,6 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
   const [previewPosition, setPreviewPosition] = useState<CommentPosition | null>(null);
   const [showCommentDialog, setShowCommentDialog] = useState(false);
   const pageMetrics = usePDFMetrics();
-  const [codeBlocksRaw] = useState<CodeSnippetData[]>([]);
-  const [codeBlocks, setCodeBlocks] = useState<CodeBlock[]>([]);
-  // const [selectedBlock, setSelectedBlock] = useState<CodeBlock | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [allBlocks, setAllBlocks] = useState<CodeBlock[]>([]);
-  const currentPageBlocks = allBlocks.filter(b => b.page === currentPage);
 
   // 获取评论
   useEffect(() => {
@@ -315,21 +306,21 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
     const handler = (event: MessageEvent) => {
       const { command, data } = event.data;
       console.log('收到消息:', command, data);
-      if (command === 'pdfCodeBlocks') {
-        const rawBlocks = JSON.parse(data);
-        // 只取 language/content/page 字段
-        const parsedBlocks = rawBlocks.map((block: CodeBlock) => ({
-          language: block.language,
-          content: block.content,
-          page: block.page,
-          x: 0,
-          y: 0,
-          width: 0,
-          height: 0,
-        }));
-        setCodeBlocks(parsedBlocks);
-        setAllBlocks(parsedBlocks);
-      }
+      // if (command === 'pdfCodeBlocks') {
+      //   const rawBlocks = JSON.parse(data);
+      //   // 只取 language/content/page 字段
+      //   const parsedBlocks = rawBlocks.map((block: CodeBlock) => ({
+      //     language: block.language,
+      //     content: block.content,
+      //     page: block.page,
+      //     x: 0,
+      //     y: 0,
+      //     width: 0,
+      //     height: 0,
+      //   }));
+      //   setCodeBlocks(parsedBlocks);
+      //   setAllBlocks(parsedBlocks);
+      // }
     };
     window.addEventListener('message', handler);
     // 发送请求
@@ -351,7 +342,6 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
         onMouseMove={handleMouseMove}
         previewPosition={previewPosition}
       />
-      <CodeAnnotation data={dummyCodeBlocks} />
       <CommentToolbar
         currentMode={commentMode}
         onModeChange={setCommentMode}
@@ -368,51 +358,13 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
   );
 
   if (openPanels.length === 0) {
-<<<<<<< HEAD
     return renderContent();
-=======
-    return (
-      <div style={{ display: 'flex', height: '100vh' }}>
-        <div style={{ width: '20%' }}>
-          <CodeBlockSidebar codeBlocks={currentPageBlocks} />
-        </div>
-        <div style={{ width: '60%' }}>
-          <PDFViewer filePath={filePath} onPageChange={setCurrentPage}>
-            <CommentOverlay data={comments} />
-            <CodeAnnotation data={codeBlocksRaw} />
-            <CodeBlockOverlay codeBlocks={codeBlocks} />
-          </PDFViewer>
-        </div>
-        <div style={{ width: '20%' }}>
-          {/* 评论区 */}
-        </div>
-      </div>
-    );
->>>>>>> origin/code_detect
   }
 
   return (
     <PanelGroup direction="horizontal">
       <Panel defaultSize={left}>
-<<<<<<< HEAD
         {renderContent()}
-=======
-        <div style={{ display: 'flex', height: '100vh' }}>
-          <div style={{ width: '20%' }}>
-            <CodeBlockSidebar codeBlocks={currentPageBlocks} />
-          </div>
-          <div style={{ width: '60%' }}>
-            <PDFViewer filePath={filePath} onPageChange={setCurrentPage}>
-              <CommentOverlay data={comments} />
-              <CodeAnnotation data={codeBlocksRaw} />
-              <CodeBlockOverlay codeBlocks={codeBlocks} />
-            </PDFViewer>
-          </div>
-          <div style={{ width: '20%' }}>
-            {/* 评论区 */}
-          </div>
-        </div>
->>>>>>> origin/code_detect
       </Panel>
       <PanelResizeHandle className="resize-handle" />
       <Panel defaultSize={right}>
