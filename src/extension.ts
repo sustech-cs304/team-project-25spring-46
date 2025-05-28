@@ -18,7 +18,7 @@ import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask} from '.
 import { getProjects } from './projectService';
 import { addComment, deleteCommentById, getAllComments } from './commentService';
 let panel: vscode.WebviewPanel | undefined;
-let currentUserId: number | null = null;
+export let currentUserId: number | null = null;
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -141,6 +141,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 						const result = await createNewCourse(courseName);
 						panel?.webview.postMessage({ command: 'createCourseResult', success: true, data: result });
+						const courses = await getCourses();
+						panel?.webview.postMessage({ command: 'coursesData', courses });
 					} catch (error: any) {
 						panel?.webview.postMessage({ command: 'createCourseResult', success: false, error: error.message });
 					}
@@ -167,6 +169,47 @@ export function activate(context: vscode.ExtensionContext) {
 						panel?.webview.postMessage({ command: 'createTaskResult', success: true, data: result });
 					} catch (error: any) {
 						panel?.webview.postMessage({ command: 'createTaskResult', success: false, error: error.message });
+					}
+					break;
+				case 'deleteCourse':
+					try {
+						const courseId = Number(message.courseId);
+						if (isNaN(courseId)) {
+							throw new Error('无效的课程 ID');
+						}
+						
+						const folderPath = await supabase
+							.from('courses')
+							.select('folder_path')
+							.eq('id', courseId)
+							.single()
+							.then(res => res.data?.folder_path);
+							
+						// 1. 从 Supabase 删除
+						const { error: delErr } = await supabase
+							.from('courses')
+							.delete()
+							.eq('id', courseId);
+						if (delErr) throw delErr;
+
+						await fs.promises.rm(folderPath, { recursive: true, force: true });
+						// 2. 通知前端删除成功
+						panel?.webview.postMessage({
+							command: 'deleteCourseResult',
+							success: true,
+							courseId
+						});
+
+						// 3. 刷新课程列表
+						const updated = await getCourses();
+						panel?.webview.postMessage({ command: 'coursesData', courses: updated });
+
+					} catch (err: any) {
+						panel?.webview.postMessage({
+							command: 'deleteCourseResult',
+							success: false,
+							error: err.message
+						});
 					}
 					break;
 				case 'getCourses':
