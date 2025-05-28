@@ -399,13 +399,21 @@ const ChatPage: React.FC = () => {
         <h2>群成员</h2>
         <div className="user-list">
           {groupMembers.map(user => (
-            <div key={user.id} className="user-item">
-              {user.name} ({user.email})
+            <div
+              key={user.id}
+              className="user-item"
+              data-avatar={user.name?.charAt(0).toUpperCase() || '?'}
+            >
+              <div>
+                <div>{user.name}</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>{user.email}</div>
+              </div>
             </div>
           ))}
         </div>
         <button onClick={() => setShowGroupMembersModal(false)}>关闭</button>
       </Modal>
+
 
     </div>
   );

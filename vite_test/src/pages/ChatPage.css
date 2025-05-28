@@ -184,19 +184,63 @@
   background-color: rgba(0, 0, 0, 0.5);
 }
 
-.view-members-button {
-  margin-left: 10px;
-  padding: 4px 8px;
-  font-size: 0.9em;
+/* 群成员 Modal 标题优化 */
+.modal-content h2 {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
 }
 
+/* 群成员列表样式优化 */
 .modal-content .user-list {
-  max-height: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 400px;
   overflow-y: auto;
-  margin-top: 10px;
+  padding: 5px;
 }
 
 .modal-content .user-item {
-  padding: 5px;
-  border-bottom: 1px solid #ccc;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  font-size: 14px;
+}
+
+.modal-content .user-item:hover {
+  background-color: #e9ecef;
+}
+
+.modal-content .user-item::before {
+  content: attr(data-avatar);
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  background-color: #007bff;
+  color: #fff;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.modal-content button {
+  display: block;
+  margin: 20px auto 0;
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }
