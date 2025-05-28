@@ -1333,6 +1333,46 @@ export function activate(context: vscode.ExtensionContext) {
 						}
 						break;
 
+					case 'removeGroupMembers':
+						try {
+							const { groupId, memberIds } = message;
+
+							if (!groupId || !Array.isArray(memberIds) || memberIds.length === 0) {
+								panel.webview.postMessage({
+									command: 'removeGroupMembersResult',
+									success: false,
+									error: '缺少 groupId 或 memberIds'
+								});
+								return;
+							}
+
+							const { error } = await supabase
+								.from('group_members')
+								.delete()
+								.in('member_id', memberIds)
+								.eq('group_id', groupId);
+
+							if (error) {
+								panel.webview.postMessage({
+									command: 'removeGroupMembersResult',
+									success: false,
+									error: error.message
+								});
+							} else {
+								panel.webview.postMessage({
+									command: 'removeGroupMembersResult',
+									success: true
+								});
+							}
+						} catch (err: any) {
+							panel.webview.postMessage({
+								command: 'removeGroupMembersResult',
+								success: false,
+								error: err.message
+							});
+						}
+						break;
+
 					default:
 						vscode.window.showInformationMessage(`未识别的命令: ${message.command}`);
 						console.log(`未识别的命令: ${message.command}`);

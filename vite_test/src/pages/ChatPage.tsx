@@ -55,6 +55,8 @@ const ChatPage: React.FC = () => {
   const [showAddMembersModal, setShowAddMembersModal] = useState(false);
   const [addableUsers, setAddableUsers] = useState<User[]>([]);
 
+  const [selectedRemoveUsers, setSelectedRemoveUsers] = useState<User[]>([]);
+
   useEffect(() => {
     // 初始化加载用户 ID 和用户列表
     vscode?.postMessage({ command: 'getCurrentUserid' });
@@ -399,22 +401,21 @@ const ChatPage: React.FC = () => {
         )}
 
         <div className="user-list">
-          {userList
-            .filter(user => user.id !== currentUserId)
-            .map(user => (
-              <div
-                key={user.id}
-                className={`user-item ${selectedUsers.some(u => u.id === user.id) ? 'selected' : ''}`}
-                onClick={() => handleUserSelection(user)}
-                data-avatar={user.name?.charAt(0).toUpperCase() || '?'}
-              >
-                <div>
-                  <div>{user.name}</div>
-                  <div>{user.email || '无邮箱信息'}</div>
-                </div>
+          {addableUsers.map(user => (
+            <div
+              key={user.id}
+              className={`user-item ${selectedUsers.some(u => u.id === user.id) ? 'selected' : ''}`}
+              onClick={() => handleUserSelection(user)}
+              data-avatar={user.name?.charAt(0).toUpperCase() || '?'}
+            >
+              <div>
+                <div>{user.name}</div>
+                <div>{user.email || '无邮箱信息'}</div>
               </div>
-            ))}
+            </div>
+          ))}
         </div>
+
 
         <button
           onClick={handleCreateChat}
@@ -430,7 +431,10 @@ const ChatPage: React.FC = () => {
 
       <Modal
         isOpen={showGroupMembersModal}
-        onRequestClose={() => setShowGroupMembersModal(false)}
+        onRequestClose={() => {
+          setShowGroupMembersModal(false);
+          setSelectedRemoveUsers([]);
+        }}
         className="modal-content"
         overlayClassName="modal-overlay"
       >
@@ -439,8 +443,14 @@ const ChatPage: React.FC = () => {
           {groupMembers.map(user => (
             <div
               key={user.id}
-              className="user-item"
+              className={`user-item ${selectedRemoveUsers.some(u => u.id === user.id) ? 'selected' : ''}`}
               data-avatar={user.name?.charAt(0).toUpperCase() || '?'}
+              onClick={() => {
+                const isSelected = selectedRemoveUsers.some(u => u.id === user.id);
+                setSelectedRemoveUsers(prev =>
+                  isSelected ? prev.filter(u => u.id !== user.id) : [...prev, user]
+                );
+              }}
             >
               <div>
                 <div>{user.name}</div>
@@ -450,6 +460,22 @@ const ChatPage: React.FC = () => {
           ))}
         </div>
         <button onClick={() => setShowGroupMembersModal(false)}>关闭</button>
+        <button
+          onClick={() => {
+            if (selectedChat && selectedRemoveUsers.length > 0) {
+              vscode.postMessage({
+                command: 'removeGroupMembers',
+                groupId: selectedChat.id,
+                memberIds: selectedRemoveUsers.map(u => u.id)
+              });
+              setSelectedRemoveUsers([]);
+              setShowGroupMembersModal(false);
+            }
+          }}
+          style={{ backgroundColor: 'red', color: 'white', marginTop: '10px' }}
+        >
+          删除选中成员
+        </button>
       </Modal>
 
 

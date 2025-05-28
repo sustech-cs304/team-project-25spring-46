@@ -202,8 +202,13 @@
   background-color: #e9ecef;
 }
 
-.user-item.selected {
+/* .user-item.selected {
   background-color: #dee2e6;
+} */
+
+.user-item.selected {
+  background-color: #ffecec;
+  border: 1px solid red;
 }
 
 .user-item::before {
@@ -275,6 +280,7 @@
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
   outline: none;
 }
+
 .task-header button {
   padding: 10px 16px;
   background-color: #4a90e2;
