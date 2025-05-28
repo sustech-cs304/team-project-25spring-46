@@ -103,7 +103,6 @@ export function CodeRecognition({ filePath }: CodeRecognitionProps) {
     const updatePdfDimensions = useCallback(() => {
         if (pdfRef.current) {
             const { offsetWidth, offsetHeight } = pdfRef.current;
-            console.log("PDF 容器尺寸:", offsetWidth, offsetHeight);
             setPdfDimensions({
                 width: offsetWidth,
                 height: offsetHeight
@@ -168,6 +167,7 @@ export function CodeRecognition({ filePath }: CodeRecognitionProps) {
                 case 'pdfCodeBlocks':
                     try {
                         const rawBlocks = JSON.parse(data);
+                        // 转换为前端需要的格式
                         const parsedBlocks = rawBlocks.map((block: { position: number[], language: string, code: string, page: number }) => ({
                             x: block.position[0],
                             y: block.position[1],
@@ -177,17 +177,9 @@ export function CodeRecognition({ filePath }: CodeRecognitionProps) {
                             content: block.code,
                             page: block.page
                         }));
-                        // 输出解析后的代码块信息到控制台：
-                        parsedBlocks.forEach((b: CodeBlock) => {
-                          const pos = {
-                            left: Math.round(b.x * pdfDimensions.width),
-                            top: Math.round(b.y * pdfDimensions.height),
-                            width: Math.max(Math.round(b.width * pdfDimensions.width), 50),
-                            height: Math.max(Math.round(b.height * pdfDimensions.height), 20)
-                          };
-                          console.log(`代码块 (页 ${b.page}): 边框 ${JSON.stringify(pos)}`);
-                        });
                         setCodeBlocks(parsedBlocks);
+                
+                        // 获取第一个代码块的语言类型的编译器
                         if (parsedBlocks.length > 0 && parsedBlocks[0].language) {
                             vscode.postMessage({
                                 command: 'getAvailableCompilers',
@@ -195,7 +187,7 @@ export function CodeRecognition({ filePath }: CodeRecognitionProps) {
                             });
                         }
                     } catch (error) {
-                        console.error('解析代码块数据失败:', error);
+                        console.error('Error parsing code blocks:', error);
                         setCodeBlocks([]);
                         vscode.postMessage({ 
                             command: 'showError', 
@@ -221,7 +213,7 @@ export function CodeRecognition({ filePath }: CodeRecognitionProps) {
 
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [pdfDimensions, vscode]);
+    }, []);
 
     // 按页面组织代码块
     const codeBlocksByPage = useCallback(() => {
@@ -265,11 +257,16 @@ export function CodeRecognition({ filePath }: CodeRecognitionProps) {
         const blockPos = getBlockPosition(block);
         const { width: containerWidth } = pdfDimensions;
         
+        // 根据容器宽度调整提示框宽度
         const tooltipWidth = Math.min(400, containerWidth * 0.8);
+        
+        // 计算水平位置
         let left = blockPos.left;
         if (left + tooltipWidth > containerWidth) {
             left = containerWidth - tooltipWidth - 10;
         }
+        if (left < 10) left = 10;
+
         return {
             left,
             top: blockPos.top,
@@ -306,7 +303,8 @@ export function CodeRecognition({ filePath }: CodeRecognitionProps) {
     };
 
     return (
-        <div>
+        <div style={{background: 'yellow', minHeight: 100}}>
+            HELLO DEBUG
             <div className="bg-white shadow p-4 rounded-xl" style={{ position: 'relative' }}>
                 <h2 className="text-xl font-semibold mb-4">🧠 代码识别</h2>
                 <button
@@ -420,7 +418,7 @@ export function CodeRecognition({ filePath }: CodeRecognitionProps) {
                                                 language: block.language || 'python'
                                             });
                                         }}
-                                        title={`点击编辑代码`}
+                                        title={`点击编辑 ${block.language || ''} 代码`}
                                         role="button"
                                         tabIndex={0}
                                         onKeyDown={(e) => {
@@ -434,6 +432,7 @@ export function CodeRecognition({ filePath }: CodeRecognitionProps) {
                                             }
                                         }}
                                     >
+                                        {block.language}
                                     </div>
                                 );
                             })}
