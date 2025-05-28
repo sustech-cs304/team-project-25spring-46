@@ -11,7 +11,7 @@ import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask} from './taskService';
 import { getProjects } from './projectService';
 import { addComment, deleteCommentById, getAllComments } from './commentService';
-
+let panel: vscode.WebviewPanel | undefined;
 let currentUserId: number | null = null;
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -31,20 +31,29 @@ export function activate(context: vscode.ExtensionContext) {
 	const disposable = vscode.commands.registerCommand('test-combine.openWebview', async () => {
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
+		if (panel) {
+            panel.reveal(vscode.ViewColumn.One);
+            return;
+        }
 		vscode.window.showInformationMessage('The extension is running!');
 		await testSupabaseConnection();
-		const panel = vscode.window.createWebviewPanel(
+
+		panel = vscode.window.createWebviewPanel(
 			'myWebview',
 			'Course Aware IDE',
 			vscode.ViewColumn.One,
 			{
 			  enableScripts: true,
+			  retainContextWhenHidden: true,
 			  localResourceRoots: [
 				vscode.Uri.file(path.join(context.extensionPath, 'dist')),
 				vscode.Uri.file('C:/')
 			  ]
 			}
 		);
+		panel.onDidDispose(() => {
+            panel = undefined;
+        });
 		const webview = panel.webview;
 		const cspSource = webview.cspSource;
 		// 用 asWebviewUri 生成两个资源的可访问 URI
@@ -101,9 +110,9 @@ export function activate(context: vscode.ExtensionContext) {
 						console.log("Extension - addComment filePath:", filePath); // 添加日志
 						console.log("Extension - addComment comment:", comment); // 添加日志
 						const result = await addComment(comment);
-						panel.webview.postMessage({ command: 'addCommentResult', success: true, data: result });
+						panel?.webview.postMessage({ command: 'addCommentResult', success: true, data: result });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'addCommentResult', success: false, error: error.message });
+						panel?.webview.postMessage({ command: 'addCommentResult', success: false, error: error.message });
 					}
 					break;
 				case 'createCourse':
@@ -115,14 +124,14 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 
 						if (!courseName) {
-						panel.webview.postMessage({ command: 'createCourseResult', success: false, error: '未输入课程名' });
+						panel?.webview.postMessage({ command: 'createCourseResult', success: false, error: '未输入课程名' });
 						return;
 						}
 
 						const result = await createNewCourse(courseName);
-						panel.webview.postMessage({ command: 'createCourseResult', success: true, data: result });
+						panel?.webview.postMessage({ command: 'createCourseResult', success: true, data: result });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'createCourseResult', success: false, error: error.message });
+						panel?.webview.postMessage({ command: 'createCourseResult', success: false, error: error.message });
 					}
 					break;
 				case 'createTask':
@@ -131,7 +140,7 @@ export function activate(context: vscode.ExtensionContext) {
 						const { title, details, due_date, priority,status, course_id, project_id} = message.data; // 确保 status 被接收
 						// 检查当前用户是否已登录
 						if (currentUserId === null) {
-							panel.webview.postMessage({ command: 'createTaskResult', success: false, error: '用户未登录，无法创建任务' });
+							panel?.webview.postMessage({ command: 'createTaskResult', success: false, error: '用户未登录，无法创建任务' });
 							return;
 						}
 						const result = await createNewTask({
@@ -144,38 +153,38 @@ export function activate(context: vscode.ExtensionContext) {
 						project_id,
 						assignee_id: currentUserId, // 假设当前用户 ID 为 1
 						});
-						panel.webview.postMessage({ command: 'createTaskResult', success: true, data: result });
+						panel?.webview.postMessage({ command: 'createTaskResult', success: true, data: result });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'createTaskResult', success: false, error: error.message });
+						panel?.webview.postMessage({ command: 'createTaskResult', success: false, error: error.message });
 					}
 					break;
 				case 'getCourses':
 					try {
 						const courses = await getCourses();
-						panel.webview.postMessage({ command: 'coursesData', courses });
+						panel?.webview.postMessage({ command: 'coursesData', courses });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'getCoursesResult', success: false, error: error.message });
+						panel?.webview.postMessage({ command: 'getCoursesResult', success: false, error: error.message });
 					}
 					break;
 				case 'getMyTasks' :
 					try {
 							if (currentUserId === null) {
-							panel.webview.postMessage({ command: 'error', error: '用户未登录，无法获取任务' });
+							panel?.webview.postMessage({ command: 'error', error: '用户未登录，无法获取任务' });
 							return;
 						}
 						const tasks = await getMyTasks(currentUserId); // 使用获取到的用户 ID
-						panel.webview.postMessage({ command: 'getMyTasks', tasks });
+						panel?.webview.postMessage({ command: 'getMyTasks', tasks });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'error', error: error.message });
+						panel?.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
 				case 'getProjectTasks' :
 					try {
 						const projectId = 1;
 						const tasks = await getProjectTasks(projectId);
-    					panel.webview.postMessage({ command: 'projectTasksData', tasks });
+    					panel?.webview.postMessage({ command: 'projectTasksData', tasks });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'error', error: error.message });
+						panel?.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
 				case 'updateTask':
@@ -192,23 +201,23 @@ export function activate(context: vscode.ExtensionContext) {
 						course_id,
 						project_id,
 						});
-						panel.webview.postMessage({ command: 'updateTaskResult', success: true, taskId: id });
+						panel?.webview.postMessage({ command: 'updateTaskResult', success: true, taskId: id });
 					} catch (error: any) {
 						console.error("Extension - updateTask error:", error); // 添加日志
-						panel.webview.postMessage({ command: 'updateTaskResult', success: false, error: error.message });
+						panel?.webview.postMessage({ command: 'updateTaskResult', success: false, error: error.message });
 					}
 					break;
 				case 'deleteTask':
 					try {
 						const taskId = message.taskId;
 						if (!taskId) {
-						panel.webview.postMessage({ command: 'error', error: '未提供任务 ID' });
+						panel?.webview.postMessage({ command: 'error', error: '未提供任务 ID' });
 						return;
 						}
 						await deleteTask(taskId);
-						panel.webview.postMessage({ command: 'deleteTaskResult', success: true, taskId });
+						panel?.webview.postMessage({ command: 'deleteTaskResult', success: true, taskId });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'deleteTaskResult', success: false, error: error.message });
+						panel?.webview.postMessage({ command: 'deleteTaskResult', success: false, error: error.message });
 					}
 					break;
 				case 'deleteComments':
@@ -216,46 +225,46 @@ export function activate(context: vscode.ExtensionContext) {
 						console.log('Start to delete Comment ', message.id);
 						const commentIdStr = message.id;
 						if (!commentIdStr) {
-							panel.webview.postMessage({ command: 'deleteCommentsError', error: '未提供所需删除的评论 ID' });
+							panel?.webview.postMessage({ command: 'deleteCommentsError', error: '未提供所需删除的评论 ID' });
 							return;
 						}
 						const commentId = Number(commentIdStr); // 将 string 转为 number
 						if (isNaN(commentId)) {
-							panel.webview.postMessage({ command: 'deleteCommentsError', id: commentIdStr, error: '评论 ID 不是有效的数字' });
+							panel?.webview.postMessage({ command: 'deleteCommentsError', id: commentIdStr, error: '评论 ID 不是有效的数字' });
 							return;
 						}
 						await deleteCommentById(commentId);
 						console.log('Successfully delete the comment');
-						panel.webview.postMessage({ command: 'deleteCommentsSuccess', id: commentIdStr });
+						panel?.webview.postMessage({ command: 'deleteCommentsSuccess', id: commentIdStr });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'deleteCommentsError', id: message.id, error: error.message });
+						panel?.webview.postMessage({ command: 'deleteCommentsError', id: message.id, error: error.message });
 					}
 					break;
 				case 'getCourseFiles':
 					try {
 						const files = await getCourseSubfolderFiles(message.courseName);
-						panel.webview.postMessage({ command: 'courseFilesData', files });
+						panel?.webview.postMessage({ command: 'courseFilesData', files });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'error', error: error.message });
+						panel?.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
 				case 'getFileDetails':
 					try {
 						const details = await getFileDetails(message.filePath);
-						panel.webview.postMessage({ command: 'fileDetails', details });
+						panel?.webview.postMessage({ command: 'fileDetails', details });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'error', error: error.message });
+						panel?.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
 				case 'getAllComments':
 					try {
 						const comments = await getAllComments(message.filePath);
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 						command: 'getAllCommentsSuccess',
 						comments,
 						});
 					} catch (error) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 						command: 'getAllCommentsError',
 						error: error || String(error),
 						});
@@ -276,7 +285,7 @@ export function activate(context: vscode.ExtensionContext) {
 					console.log("executing python script with filePath: ", absolutePath, scriptPath, outPath);
 					exec(`"${pythonPath}" "${scriptPath}" "${absolutePath}" "${outPath}"`, (error, stdout, stderr) => {
 					if (error) {
-						panel.webview.postMessage({ command: 'error', error: error.message });
+						panel?.webview.postMessage({ command: 'error', error: error.message });
 						return;
 					}
 
@@ -286,16 +295,16 @@ export function activate(context: vscode.ExtensionContext) {
 					// 	path: codePath,
 					// 	content: await fs.promises.readFile(codePath, 'utf-8')
 					// }))).then((codes) => {
-					// 	panel.webview.postMessage({ command: 'codeRecognitionResult', codes });
+					// 	panel?.webview.postMessage({ command: 'codeRecognitionResult', codes });
 					// });
 					const codes = codeFiles.map((content, index) => ({
 						path: `Snippet ${index + 1}`,
 						content
 						}));
-						panel.webview.postMessage({ command: 'codeRecognitionResult', codes });
+						panel?.webview.postMessage({ command: 'codeRecognitionResult', codes });
 					});
 				} catch (err: any) {
-					panel.webview.postMessage({ command: 'error', error: err.message });
+					panel?.webview.postMessage({ command: 'error', error: err.message });
 				}
 					break;
 				case 'openFile':
@@ -307,21 +316,21 @@ export function activate(context: vscode.ExtensionContext) {
                         const jsonContent = await vscode.workspace.fs.readFile(vscode.Uri.file(jsonFilePath));
                         const jsonString = Buffer.from(jsonContent).toString('utf-8');
                         vscode.window.showInformationMessage(`JSON 文件内容: ${jsonString}`);
-						panel.webview.postMessage({command: 'pdfCodeBlocks', data: jsonString});
+						panel?.webview.postMessage({command: 'pdfCodeBlocks', data: jsonString});
                     } catch (error) {
                         vscode.window.showErrorMessage(`无法读取 JSON 文件: ${error}`);
                     }
 				}
 				catch(err: any) {
-					panel.webview.postMessage({command: 'error', error: err.message});
+					panel?.webview.postMessage({command: 'error', error: err.message});
 				}
 					break;
 				case 'generateSummary':
 					try {
 						const summary = await generateAISummary(message.filePath);
-						panel.webview.postMessage({ command: 'aiSummaryResult', content: summary });
+						panel?.webview.postMessage({ command: 'aiSummaryResult', content: summary });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'aiError', error: error.message });
+						panel?.webview.postMessage({ command: 'aiError', error: error.message });
 					}
 					break;
 
@@ -344,13 +353,13 @@ export function activate(context: vscode.ExtensionContext) {
 						await vscode.window.showTextDocument(doc);
 
 						// 5. 通知前端
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 						command: 'saveSummaryResult',
 						success: true,
 						mdPath
 						});
 					} catch (err: any) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 						command: 'saveSummaryResult',
 						success: false,
 						error: err.message
@@ -361,9 +370,9 @@ export function activate(context: vscode.ExtensionContext) {
 				case 'generateQuiz':
 					try {
 						const quiz = await generateAIQuiz(message.filePath);
-						panel.webview.postMessage({ command: 'aiQuizResult', content: quiz });
+						panel?.webview.postMessage({ command: 'aiQuizResult', content: quiz });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'aiError', error: error.message });
+						panel?.webview.postMessage({ command: 'aiError', error: error.message });
 					}
 					break;
 				case 'getPdfPath':
@@ -371,32 +380,32 @@ export function activate(context: vscode.ExtensionContext) {
 						const absolutePath = await getFileAbsolutePath(message.path);
 						console.log("File's Absolute Path is: "+absolutePath);
 						const pdfPath = vscode.Uri.file(absolutePath);
-						const pdfUri = panel.webview.asWebviewUri(pdfPath);
-						console.log("path: "+pdfUri.toString());
-						panel.webview.postMessage({ command: 'PdfPath', path: pdfUri.toString() });
+						const pdfUri = panel?.webview.asWebviewUri(pdfPath);
+						console.log("path: "+pdfUri?.toString());
+						panel?.webview.postMessage({ command: 'PdfPath', path: pdfUri?.toString() });
 						console.log("finish command getPdfPath ----");
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'error', error: error.message });
+						panel?.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
 				case 'getDemoPdfPath':
 					try {
 						// const demoPdfPath = path.join(context.extensionPath, 'dist', 'assets', 'sample.pdf');
 						const demoPdfPath = vscode.Uri.joinPath(context.extensionUri, 'dist', 'assets', 'sample.pdf');
-						const demoPdfUri = panel.webview.asWebviewUri(demoPdfPath);
-						panel.webview.postMessage({ command: 'demoPdfPath', filePath: demoPdfUri.toString() });
+						const demoPdfUri = panel?.webview.asWebviewUri(demoPdfPath);
+						panel?.webview.postMessage({ command: 'demoPdfPath', filePath: demoPdfUri?.toString() });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'error', error: error.message });
+						panel?.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
 				case 'getPdfWorkerPath':
 					try {
 						// const PdfWorkerPath = path.join(context.extensionPath, 'dist', 'assets', 'pdf.worker.min.js');
 						const PdfWorkerPath = vscode.Uri.joinPath(context.extensionUri, 'dist', 'assets', 'pdf.worker.min.js');
-						const PdfWorkerUri = panel.webview.asWebviewUri(PdfWorkerPath);
-						panel.webview.postMessage({ command: 'PdfWorkerPath', path: PdfWorkerUri.path });
+						const PdfWorkerUri = panel?.webview.asWebviewUri(PdfWorkerPath);
+						panel?.webview.postMessage({ command: 'PdfWorkerPath', path: PdfWorkerUri?.path });
 					} catch (error: any) {
-						panel.webview.postMessage({ command: 'error', error: error.message });
+						panel?.webview.postMessage({ command: 'error', error: error.message });
 					}
 					break;
 				case 'login':
@@ -409,13 +418,13 @@ export function activate(context: vscode.ExtensionContext) {
 						.single();
 
 						if (error || !data) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'loginResult',
 							success: false,
 							error: '用户不存在或数据库错误'
 						});
 						} else if (data.password !== password) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'loginResult',
 							success: false,
 							error: '密码错误'
@@ -424,7 +433,7 @@ export function activate(context: vscode.ExtensionContext) {
 						currentUserId = data.id;
 						// Store currentUserId in persistent storage
 						await context.globalState.update('currentUserId', currentUserId);
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'loginResult',
 							success: true,
 							user: {
@@ -437,7 +446,7 @@ export function activate(context: vscode.ExtensionContext) {
 						console.log('✅ 使用自建 users 表登录成功，用户 ID:', currentUserId);
 						}
 					} catch (err: any) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 						command: 'loginResult',
 						success: false,
 						error: err.message
@@ -457,7 +466,7 @@ export function activate(context: vscode.ExtensionContext) {
 					.maybeSingle();
 
 					if (exist) {
-					panel.webview.postMessage({
+					panel?.webview.postMessage({
 						command: 'registerResult',
 						success: false,
 						error: '该邮箱已被注册'
@@ -470,14 +479,14 @@ export function activate(context: vscode.ExtensionContext) {
 						.single();
 
 					if (insertError || !newUser) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 						command: 'registerResult',
 						success: false,
 						error: insertError?.message || '注册失败'
 						});
 					} else {
 						currentUserId = newUser.id;
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 						command: 'registerResult',
 						success: true,
 						user: newUser
@@ -486,7 +495,7 @@ export function activate(context: vscode.ExtensionContext) {
 					}
 					}
 				} catch (err: any) {
-					panel.webview.postMessage({
+					panel?.webview.postMessage({
 					command: 'registerResult',
 					success: false,
 					error: err.message
@@ -499,7 +508,7 @@ export function activate(context: vscode.ExtensionContext) {
 				currentUserId = null;
 				// Clear currentUserId from persistent storage
 				await context.globalState.update('currentUserId', null);
-				panel.webview.postMessage({
+				panel?.webview.postMessage({
 					command: 'logoutResult',
 					success: true
 				});
@@ -507,7 +516,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 				// —— 获取当前登录用户 ID ——
 				case 'getCurrentUserid':
-				panel.webview.postMessage({
+				panel?.webview.postMessage({
 					command: 'currentUseridResult',
 					success: true,
 					userId: currentUserId
@@ -522,20 +531,20 @@ export function activate(context: vscode.ExtensionContext) {
 							.order('id', { ascending: true });
 
 						if (error) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'getUsersResult',
 								success: false,
 								error: error.message
 							});
 						} else {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'getUsersResult',
 								success: true,
 								users: data
 							});
 						}
 					} catch (err: any) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'getUsersResult',
 							success: false,
 							error: err.message
@@ -548,7 +557,7 @@ export function activate(context: vscode.ExtensionContext) {
 						const userId = parseInt(message.userId);
 						
 						if (isNaN(userId)) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'deleteUserResult',
 								success: false,
 								error: '无效的用户 ID'
@@ -563,7 +572,7 @@ export function activate(context: vscode.ExtensionContext) {
 							.select();
 
 						if (error) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'deleteUserResult',
 								success: false,
 								error: error.message
@@ -572,7 +581,7 @@ export function activate(context: vscode.ExtensionContext) {
 						}
 
 						if (data.length === 0) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'deleteUserResult',
 								success: false,
 								error: '用户不存在'
@@ -580,14 +589,14 @@ export function activate(context: vscode.ExtensionContext) {
 							return;
 						}
 
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'deleteUserResult',
 							success: true,
 							message: '用户删除成功',
 							user: data[0]
 						});
 					} catch (err: any) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'deleteUserResult',
 							success: false,
 							error: err.message
@@ -599,7 +608,7 @@ export function activate(context: vscode.ExtensionContext) {
 						const userId = message.userId;
 						
 						if (!userId) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'getFriendsListResult',
 								success: false,
 								error: '用户ID不能为空'
@@ -616,7 +625,7 @@ export function activate(context: vscode.ExtensionContext) {
 							.eq('user_id', userId);
 
 						if (error) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'getFriendsListResult',
 								success: false,
 								error: error.message
@@ -630,13 +639,13 @@ export function activate(context: vscode.ExtensionContext) {
 							type: 'friend'
 						}));
 
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'getFriendsListResult',
 							success: true,
 							friends: friends
 						});
 					} catch (err: any) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'getFriendsListResult',
 							success: false,
 							error: err.message
@@ -649,7 +658,7 @@ export function activate(context: vscode.ExtensionContext) {
 						const { currentUserId, friendId } = message;
 
 						if (!currentUserId || !friendId) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'newFriendResult',
 								success: false,
 								error: 'currentUserId 和 friendId 是必需的'
@@ -666,7 +675,7 @@ export function activate(context: vscode.ExtensionContext) {
 							]);
 
 						if (error1 && !error1.message.includes('duplicate key')) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'newFriendResult',
 								success: false,
 								error: error1.message
@@ -682,7 +691,7 @@ export function activate(context: vscode.ExtensionContext) {
 							.single();
 
 						if (error2) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'newFriendResult',
 								success: false,
 								error: error2.message
@@ -692,7 +701,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 						const friendName = data?.name || `用户${friendId}`;
 
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'newFriendResult',
 							success: true,
 							friend: {
@@ -703,7 +712,7 @@ export function activate(context: vscode.ExtensionContext) {
 							}
 						});
 					} catch (err: any) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'newFriendResult',
 							success: false,
 							error: err.message
@@ -716,7 +725,7 @@ export function activate(context: vscode.ExtensionContext) {
 						const userId = message.userId;
 
 						if (!userId) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'getGroupListResult',
 								success: false,
 								error: '用户ID不能为空'
@@ -737,7 +746,7 @@ export function activate(context: vscode.ExtensionContext) {
 							.eq('member_id', userId);
 
 						if (error) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'getGroupListResult',
 								success: false,
 								error: error.message
@@ -753,13 +762,13 @@ export function activate(context: vscode.ExtensionContext) {
 							groupOwner: item.groups.owner
 						}));
 
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'getGroupListResult',
 							success: true,
 							groups: groups
 						});
 					} catch (err: any) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'getGroupListResult',
 							success: false,
 							error: err.message
@@ -773,7 +782,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 						// 参数校验
 						if (!name || !Array.isArray(userIds) || userIds.length < 2 || !ownerId) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'createGroupResult',
 								success: false,
 								error: '缺少群聊名称、成员列表或群主 ID'
@@ -789,7 +798,7 @@ export function activate(context: vscode.ExtensionContext) {
 							.single();
 
 						if (insertGroupError) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'createGroupResult',
 								success: false,
 								error: insertGroupError.message
@@ -809,7 +818,7 @@ export function activate(context: vscode.ExtensionContext) {
 							.upsert(memberRows, { onConflict: 'group_id,member_id' });
 
 						if (insertMembersError) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'createGroupResult',
 								success: false,
 								error: insertMembersError.message
@@ -824,7 +833,7 @@ export function activate(context: vscode.ExtensionContext) {
 							.in('id', userIds);
 
 						if (userQueryError) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'createGroupResult',
 								success: false,
 								error: userQueryError.message
@@ -832,7 +841,7 @@ export function activate(context: vscode.ExtensionContext) {
 							return;
 						}
 
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'createGroupResult',
 							success: true,
 							group: {
@@ -844,7 +853,7 @@ export function activate(context: vscode.ExtensionContext) {
 							}
 						});
 					} catch (err: any) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'createGroupResult',
 							success: false,
 							error: err.message
@@ -857,7 +866,7 @@ export function activate(context: vscode.ExtensionContext) {
 						const { userId, friendId } = message;
 
 						if (!userId || !friendId) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'getFriendMessagesResult',
 								success: false,
 								error: '用户ID和好友ID不能为空'
@@ -878,7 +887,7 @@ export function activate(context: vscode.ExtensionContext) {
 							.order('time', { ascending: true });
 
 						if (error) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'getFriendMessagesResult',
 								success: false,
 								error: error.message
@@ -895,13 +904,13 @@ export function activate(context: vscode.ExtensionContext) {
 							sender_role: msg.users?.role || ''
 						}));
 
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'getFriendMessagesResult',
 							success: true,
 							messages: messages
 						});
 					} catch (err: any) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'getFriendMessagesResult',
 							success: false,
 							error: err.message
@@ -914,7 +923,7 @@ export function activate(context: vscode.ExtensionContext) {
 						const { sender, receiver, text } = message;
 
 						if (!sender || !receiver || !text) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'sendFriendsMessageResult',
 								success: false,
 								error: '发送者、接收者和消息内容不能为空'
@@ -931,7 +940,7 @@ export function activate(context: vscode.ExtensionContext) {
 							.single();
 
 						if (error) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'sendFriendsMessageResult',
 								success: false,
 								error: error.message
@@ -939,13 +948,13 @@ export function activate(context: vscode.ExtensionContext) {
 							return;
 						}
 
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'sendFriendsMessageResult',
 							success: true,
 							message: data
 						});
 					} catch (err: any) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'sendFriendsMessageResult',
 							success: false,
 							error: err.message
@@ -958,7 +967,7 @@ export function activate(context: vscode.ExtensionContext) {
 						const { groupId } = message;
 
 						if (!groupId) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'getGroupMessagesResult',
 								success: false,
 								error: '群组ID不能为空'
@@ -978,7 +987,7 @@ export function activate(context: vscode.ExtensionContext) {
 							.order('time', { ascending: true });
 
 						if (error) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'getGroupMessagesResult',
 								success: false,
 								error: error.message
@@ -995,13 +1004,13 @@ export function activate(context: vscode.ExtensionContext) {
 							sender_role: msg.users?.role || ''
 						}));
 
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'getGroupMessagesResult',
 							success: true,
 							messages: messages
 						});
 					} catch (err: any) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'getGroupMessagesResult',
 							success: false,
 							error: err.message
@@ -1014,7 +1023,7 @@ export function activate(context: vscode.ExtensionContext) {
 						const { group_id, sender, text } = message;
 
 						if (!group_id || !sender || !text) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'sendGroupMessageResult',
 								success: false,
 								error: '群组ID、发送者和消息内容不能为空'
@@ -1031,7 +1040,7 @@ export function activate(context: vscode.ExtensionContext) {
 							.single();
 
 						if (error) {
-							panel.webview.postMessage({
+							panel?.webview.postMessage({
 								command: 'sendGroupMessageResult',
 								success: false,
 								error: error.message
@@ -1039,13 +1048,13 @@ export function activate(context: vscode.ExtensionContext) {
 							return;
 						}
 
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'sendGroupMessageResult',
 							success: true,
 							message: data
 						});
 					} catch (err: any) {
-						panel.webview.postMessage({
+						panel?.webview.postMessage({
 							command: 'sendGroupMessageResult',
 							success: false,
 							error: err.message
@@ -1055,9 +1064,9 @@ export function activate(context: vscode.ExtensionContext) {
 				case 'getProjects':
 				try {
 				const projects = await getProjects();
-				panel.webview.postMessage({ command: 'projectsData', projects });
+				panel?.webview.postMessage({ command: 'projectsData', projects });
 				} catch (error: any) {
-				panel.webview.postMessage({ command: 'error', error: error.message });
+				panel?.webview.postMessage({ command: 'error', error: error.message });
 				}
 				break;
 				default:
