@@ -3,10 +3,8 @@ import * as fs from 'fs';
 import pdf from 'pdf-parse';
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Agent as HttpsAgent } from 'https';
-import pool from './database';
-import path from 'path';
 import apiKey from './apikey';
-
+import { getFileAbsolutePath } from './courseService';
 const ENDPOINT = 'https://sg.uiuiapi.com/v1/chat/completions';
 
 // 1. 创建带超时 & keep-alive 的 HTTP 客户端
@@ -82,7 +80,7 @@ async function queryLLM(prompt: string): Promise<string> {
  */
 export async function generateAISummary(relativePath: string): Promise<string> {
   console.log(`▶️ Generating summary for: ${relativePath}`);
-  const absolutePath = await getAbsolutePath(relativePath);
+  const absolutePath = await getFileAbsolutePath(relativePath);
   const pdfText = await extractPDFText(absolutePath);
   const prompt =
     '请逐页解析以下课件内容，总结要点为 Markdown 格式的笔记：\n\n' +
@@ -97,7 +95,7 @@ export async function generateAISummary(relativePath: string): Promise<string> {
  */
 export async function generateAIQuiz(relativePath: string): Promise<string> {
   console.log(`▶️ Generating quiz for: ${relativePath}`);
-  const absolutePath = await getAbsolutePath(relativePath);
+  const absolutePath = await getFileAbsolutePath(relativePath);
   const pdfText = await extractPDFText(absolutePath);
   const prompt =
     '请根据以下课件内容，出 5 道 quiz（选择题或填空题），用 JSON 数组格式返回，每题包含：题干、选项（如有）、参考答案、解析，例如：\n' +
@@ -108,18 +106,4 @@ export async function generateAIQuiz(relativePath: string): Promise<string> {
     '\n\n请只返回 JSON，不要包含多余文字。';
   const result = await queryLLM(prompt);
   return result;
-}
-
-/**
- * 把相对路径转换为磁盘上绝对路径
- */
-async function getAbsolutePath(relativePath: string): Promise<string> {
-  const [courseName, subfolder, ...filenameParts] = relativePath.split('/');
-  const filename = filenameParts.join('/');
-  const res = await pool.query(
-    'SELECT folder_path FROM courses WHERE name = $1',
-    [courseName]
-  );
-  if (!res.rows[0]) throw new Error(`课程 "${courseName}" 未找到`);
-  return path.join(res.rows[0].folder_path, subfolder, filename);
 }

@@ -18,6 +18,8 @@ import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask} from '.
 import { getProjects } from './projectService';
 import { addComment, deleteCommentById, getAllComments } from './commentService';
 let panel: vscode.WebviewPanel | undefined;
+import { defaultEnv, runPythonScript, runPythonCode, CondaEnv } from './python_env';
+
 let currentUserId: number | null = null;
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -52,9 +54,9 @@ export function activate(context: vscode.ExtensionContext) {
 			  localResourceRoots: [
 				vscode.Uri.file(path.join(context.extensionPath, 'dist')),
 				vscode.Uri.file('C:/'),
-				vscode.Uri.file('c:/'),
 				vscode.Uri.file('D:/'),
-				vscode.Uri.file('d:/')
+                vscode.Uri.file('E:/'),
+                vscode.Uri.file('F:/'),
 			  ]
 			}
 		);
@@ -63,6 +65,7 @@ export function activate(context: vscode.ExtensionContext) {
         });
 		const webview = panel.webview;
 		const cspSource = webview.cspSource;
+		const dailyworkEnv = new CondaEnv('conda', 'dailywork');
 		// 用 asWebviewUri 生成两个资源的可访问 URI
 		const demoPdfUri = webview.asWebviewUri(
 			vscode.Uri.file(path.join(context.extensionPath, 'dist', 'assets', 'sample.pdf'))
@@ -228,26 +231,6 @@ export function activate(context: vscode.ExtensionContext) {
 						await deleteTask(taskId);
 						panel?.webview.postMessage({ command: 'deleteTaskResult', success: true, taskId });
 					} catch (error: any) {
-						panel?.webview.postMessage({ command: 'deleteTaskResult', success: false, error: error.message });
-					}
-					break;
-				case 'deleteComments':
-					try {
-						console.log('Start to delete Comment ', message.id);
-						const commentIdStr = message.id;
-						if (!commentIdStr) {
-							panel?.webview.postMessage({ command: 'deleteCommentsError', error: '未提供所需删除的评论 ID' });
-							return;
-						}
-						const commentId = Number(commentIdStr); // 将 string 转为 number
-						if (isNaN(commentId)) {
-							panel?.webview.postMessage({ command: 'deleteCommentsError', id: commentIdStr, error: '评论 ID 不是有效的数字' });
-							return;
-						}
-						await deleteCommentById(commentId);
-						console.log('Successfully delete the comment');
-						panel?.webview.postMessage({ command: 'deleteCommentsSuccess', id: commentIdStr });
-					} catch (error: any) {
 						panel?.webview.postMessage({ command: 'deleteCommentsError', id: message.id, error: error.message });
 					}
 					break;
@@ -292,50 +275,249 @@ export function activate(context: vscode.ExtensionContext) {
 					const absolutePath = path.join(coursePath, subfolder, filename);
 					const scriptPath = path.join(context.extensionPath, 'src', 'pdf_test.py');
 					const outPath = path.join(context.extensionPath, 'cr_out');
-					const pythonPath = "C:\\ProgramData\\miniconda3\\python.exe";
-					console.log("executing python script with filePath: ", absolutePath, scriptPath, outPath);
-					exec(`"${pythonPath}" "${scriptPath}" "${absolutePath}" "${outPath}"`, (error, stdout, stderr) => {
-					if (error) {
-						panel?.webview.postMessage({ command: 'error', error: error.message });
-						return;
-					}
+					// const outPath = "E:/test";
 
-					// 解析输出的代码文件路径 (每一行一个)
-					const codeFiles = stdout.trim().split('\n');
-					// Promise.all(codeFiles.map(async (codePath) => ({
-					// 	path: codePath,
-					// 	content: await fs.promises.readFile(codePath, 'utf-8')
-					// }))).then((codes) => {
-					// 	panel?.webview.postMessage({ command: 'codeRecognitionResult', codes });
-					// });
-					const codes = codeFiles.map((content, index) => ({
-						path: `Snippet ${index + 1}`,
-						content
-						}));
-						panel?.webview.postMessage({ command: 'codeRecognitionResult', codes });
-					});
+					// 发送开始识别的消息
+					panel?.webview.postMessage({ command: 'recognitionStarted' });
+
+					try {
+						// 确保输出目录存在
+						if (!fs.existsSync(outPath)) {
+							fs.mkdirSync(outPath, { recursive: true });
+						}
+						console.log(`开始识别文件: ${absolutePath}, 输出目录: ${outPath}`);
+						// 运行 Python 脚本
+						const command = [absolutePath, outPath];
+						const stdout = dailyworkEnv.runScript(scriptPath, command);
+						
+						// 等待 JSON 文件生成
+						const jsonFilePath = path.join(outPath, path.parse(filename).name + "_code_block.json");
+						let retries = 0;
+						const maxRetries = 10;
+						const checkInterval = 500; // 500ms
+
+						const waitForJson = () => new Promise((resolve, reject) => {
+							const checkFile = () => {
+								if (fs.existsSync(jsonFilePath)) {
+									try {
+										const jsonContent = fs.readFileSync(jsonFilePath, 'utf-8');
+										resolve(jsonContent);
+									} catch (err) {
+										reject(err);
+									}
+								} else if (retries < maxRetries) {
+									retries++;
+									setTimeout(checkFile, checkInterval);
+								} else {
+									reject(new Error('JSON 文件生成超时'));
+								}
+							};
+							checkFile();
+						});
+
+						// 等待 JSON 文件生成并读取内容
+						const jsonContent = await waitForJson();
+						
+						// 发送识别结果
+						panel?.webview.postMessage({ 
+							command: 'pdfCodeBlocks', 
+							data: jsonContent 
+						});
+						
+						// 发送识别完成的消息
+						panel?.webview.postMessage({ command: 'recognitionCompleted' });
+					} catch (error: any) {
+						console.error('代码识别错误:', error);
+						panel?.webview.postMessage({ 
+							command: 'recognitionError', 
+							error: error.message 
+						});
+						vscode.window.showErrorMessage(`代码识别失败: ${error.message}`);
+					}
 				} catch (err: any) {
-					panel?.webview.postMessage({ command: 'error', error: err.message });
+					console.error('代码识别错误:', err);
+					panel?.webview.postMessage({ 
+						command: 'recognitionError', 
+						error: err.message 
+					});
+					vscode.window.showErrorMessage(`代码识别失败: ${err.message}`);
 				}
-					break;
-				case 'openFile':
-				try{
+				break;
+				case 'openFile': {
+				  try {
 					const filePath = message.filePath;
-                    vscode.window.showInformationMessage(`打开 PDF 文件: ${filePath}`);
-                    try {
-						const jsonFilePath = path.join(context.extensionPath, 'cr_out') + "\\" + path.parse(filePath).name + "_code_block.json";
-                        const jsonContent = await vscode.workspace.fs.readFile(vscode.Uri.file(jsonFilePath));
-                        const jsonString = Buffer.from(jsonContent).toString('utf-8');
-                        vscode.window.showInformationMessage(`JSON 文件内容: ${jsonString}`);
-						panel?.webview.postMessage({command: 'pdfCodeBlocks', data: jsonString});
-                    } catch (error) {
-                        vscode.window.showErrorMessage(`无法读取 JSON 文件: ${error}`);
-                    }
+					
+					console.log(`打开文件: ${filePath}`);
+					vscode.window.showInformationMessage(`打开 PDF 文件: ${filePath}`);
+					
+					// 尝试获取 PDF 的绝对路径
+					const absolutePath = await getFileAbsolutePath(filePath);
+					const pdfPath = vscode.Uri.file(absolutePath);
+					const pdfUri = panel?.webview.asWebviewUri(pdfPath);
+					panel?.webview.postMessage({ command: 'PdfPath', path: pdfUri?.toString() });
+					
+					// 检查 JSON 文件是否存在
+					const jsonFileName = path.parse(filePath).name + "_code_block.json";
+					const jsonFilePath = path.join(context.extensionPath, 'cr_out', jsonFileName);
+					
+					console.log(`检查JSON文件路径: ${jsonFilePath}`);
+					
+					if (fs.existsSync(jsonFilePath)) {
+					  try {
+						const jsonContent = fs.readFileSync(jsonFilePath, 'utf-8');
+						// 输出 JSON 文件内容到扩展终端
+						console.log(`读取到 JSON 文件内容长度: ${jsonContent.length}`);
+						console.log(`JSON内容片段: ${jsonContent.substring(0, 200)}...`);
+						
+						// 确保JSON格式正确
+						const parsedJson = JSON.parse(jsonContent);
+						console.log(`解析后的JSON对象包含 ${parsedJson.length} 个代码块`);
+						
+						// 将读取到的代码块 JSON 数据发送到 Webview
+						panel?.webview.postMessage({
+						  command: 'pdfCodeBlocks',
+						  data: jsonContent
+						});
+						
+						console.log('已发送pdfCodeBlocks消息到前端');
+					  } catch (err) {
+						// 安全地获取错误信息
+						const errorMessage = err instanceof Error ? err.message : String(err);
+						console.error(`读取或解析JSON文件失败:`, err);
+						panel?.webview.postMessage({ 
+						  command: 'error', 
+						  error: `读取代码块数据失败: ${errorMessage}` 
+						});
+					  }
+					} else {
+					  console.log(`没有找到代码块 JSON 文件: ${jsonFilePath}`);
+					  // 可能需要触发代码识别来生成JSON
+					  if (message.needCodeRecognition) {
+						console.log('文件打开时自动触发代码识别');
+						// 自动触发代码识别 - 将相关代码从runCodeRecognition命令处理程序复制到这里
+						// ...代码识别逻辑...
+					  }
+					}
+				  } catch (err) {
+					// 安全地获取错误信息
+					const errorMessage = err instanceof Error ? err.message : String(err);
+					console.error('打开文件失败:', err);
+					panel?.webview.postMessage({ command: 'error', error: errorMessage });
+					vscode.window.showErrorMessage(`打开文件失败: ${errorMessage}`);
+				  }
+				  break;
 				}
-				catch(err: any) {
-					panel?.webview.postMessage({command: 'error', error: err.message});
+				case 'runCodeBlock':
+				try {
+					const { code, language } = message;
+					// 这里只以 python 为例，其他语言可自行扩展
+					if (language === 'Python') {
+						const tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.py');
+						fs.writeFileSync(tmpPath, code, 'utf-8');
+						exec(`python "${tmpPath}"`, (error, stdout, stderr) => {
+							if (error) {
+								console.log('发送 runCodeResult:', { result: stderr || error.message, blockIdx: message.blockIdx });
+								panel?.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stderr || error.message, 
+									blockIdx: message.blockIdx 
+								});
+							} else {
+								console.log('发送 runCodeResult:', { result: stdout, blockIdx: message.blockIdx });
+								panel?.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stdout, 
+									blockIdx: message.blockIdx 
+								});
+							}
+						});
+					}
+					else if (language === 'C') {
+						const tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.c');
+						fs.writeFileSync(tmpPath, code, 'utf-8');
+						exec(`gcc "${tmpPath}"\n ./a.exe`, (error, stdout, stderr) => {
+							if (error) {
+								console.log('发送 runCodeResult:', { result: stderr || error.message, blockIdx: message.blockIdx });
+								panel?.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stderr || error.message, 
+									blockIdx: message.blockIdx 
+								});
+							} else {
+								console.log('发送 runCodeResult:', { result: stdout, blockIdx: message.blockIdx });
+								panel?.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stdout, 
+									blockIdx: message.blockIdx 
+								});
+							}
+						});
+					}
+					else if (language === 'C++') {
+						const tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.cpp');
+						fs.writeFileSync(tmpPath, code, 'utf-8');
+						exec(`g++ "${tmpPath}"\n ./a.exe`, (error, stdout, stderr) => {
+							if (error) {
+								console.log('发送 runCodeResult:', { result: stderr || error.message, blockIdx: message.blockIdx });
+								panel?.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stderr || error.message, 
+									blockIdx: message.blockIdx 
+								});
+							}
+							else {
+								console.log('发送 runCodeResult:', { result: stdout, blockIdx: message.blockIdx });
+								panel?.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stdout, 
+									blockIdx: message.blockIdx 
+								});
+							}
+						});
+					}
+					else if (language === 'Java') {
+						const match = code.match(/public\s+class\s+([A-Za-z_][A-Za-z0-9_]*)/);
+						let tmpPath = path.join(context.extensionPath, 'cr_out');
+    					if (match && match[1]) {
+							tmpPath = path.join(tmpPath, match[1], '.java');
+						}
+						fs.writeFileSync(tmpPath, code, 'utf-8');
+						exec(`javac "${tmpPath}"\n java -cp "${path.dirname(tmpPath)}" "${path.basename(tmpPath, '.java')}"`, (error, stdout, stderr) => {
+							if (error) {
+								console.log('发送 runCodeResult:', { result: stderr || error.message, blockIdx: message.blockIdx });
+								panel?.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stderr || error.message, 
+									blockIdx: message.blockIdx 
+								});
+							}
+							else {
+								console.log('发送 runCodeResult:', { result: stdout, blockIdx: message.blockIdx });
+								panel?.webview.postMessage({ 
+									command: 'runCodeResult', 
+									result: stdout, 
+									blockIdx: message.blockIdx 
+								});
+							}
+						});
+					}
+					else {
+						console.log('发送 runCodeResult:', { result: '暂不支持该语言运行', blockIdx: message.blockIdx });
+						panel?.webview.postMessage({ 
+							command: 'runCodeResult', 
+							result: '暂不支持该语言运行', 
+							blockIdx: message.blockIdx 
+						});
+					}
+				} catch (err: any) {
+					console.log('发送 runCodeResult:', { result: err.message, blockIdx: message.blockIdx });
+					panel?.webview.postMessage({ 
+						command: 'runCodeResult', 
+						result: err.message, 
+						blockIdx: message.blockIdx 
+					});
 				}
-					break;
+				break;
 				case 'generateSummary':
 					try {
 						const summary = await generateAISummary(message.filePath);

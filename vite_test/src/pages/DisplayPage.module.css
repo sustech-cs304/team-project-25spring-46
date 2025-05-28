@@ -1,0 +1,22 @@
+.resizeHandle {
+  width: 4px;
+  background-color: #e5e7eb;
+  cursor: col-resize;
+  transition: background-color 0.2s;
+}
+
+.resizeHandle:hover {
+  background-color: #d1d5db;
+}
+
+.codePanel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pdfPanel {
+  height: 100%;
+  overflow: hidden;
+}

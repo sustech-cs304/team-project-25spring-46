@@ -50,6 +50,7 @@ export interface CodeSnippetData {
         width: number;
         height: number;
     };
+    language: string;
 }
 
 export interface RawCommentInput {

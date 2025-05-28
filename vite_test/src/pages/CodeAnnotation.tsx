@@ -5,9 +5,10 @@ import { CodeSnippetData } from '../types/annotations';
 
 interface Props {
   data: CodeSnippetData[];
+  page?: number; // 新增
 }
 
-const CodeAnnotation: React.FC<Props> = ({ data: snippets }) => {
+const CodeAnnotation: React.FC<Props> = ({ data: snippets, page }) => {
   const pageMetrics = usePDFMetrics();
   const { openPanel } = useSidePanel();
   const [openId, setOpenId] = useState<string | null>(null);
@@ -27,9 +28,14 @@ const CodeAnnotation: React.FC<Props> = ({ data: snippets }) => {
     navigator.clipboard.writeText(text).catch(err => console.error('复制失败:', err));
   };
 
+  // 只渲染当前页的代码块
+  const filteredSnippets = page
+    ? snippets.filter(snippet => snippet.page === page)
+    : snippets;
+
   return (
     <>
-      {snippets.map(snippet => {
+      {filteredSnippets.map(snippet => {
         const metric = pageMetrics[snippet.page - 1];
         if (!metric) return null;
 

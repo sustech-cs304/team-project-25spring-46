@@ -9,6 +9,7 @@ import FilePage from './pages/FilePage';
 import DemoPage from './pages/DemoPage';
 import DisplayPage from './pages/DisplayPage';
 import ChatPage from "./pages/ChatPage";
+import CodeEditorPage from './pages/CodeEditorPage';
 import { getVsCodeApi } from './vscodeApi';
 
 const vscode = getVsCodeApi();
@@ -22,7 +23,7 @@ export default function App() {
     | 'CalendarPage'
     | 'DemoPage'
     | 'DisplayPage'
-    | 'FilePage'|'ChatPage';
+    | 'FilePage'|'ChatPage' | 'CodeEditorPage';
   const [currentPage, setCurrentPage] = useState<Page>('LoginPage');
   const [user, setUser] = useState<UserInfo | null>(null);
   const [selectedFile, setSelectedFile] = useState<string>('');
@@ -101,8 +102,10 @@ export default function App() {
       case 'DemoPage':
         return <DemoPage />;
       case "ChatPage": return <ChatPage />;
-      default:
-        return <HomePage onCourseClick={handleCourseClick} />;
+      case 'CalendarPage':return <CalendarPage />;
+      case 'DemoPage':    return <DemoPage />;
+      case 'CodeEditorPage': return <CodeEditorPage />
+      default:            return <HomePage onCourseClick={handleCourseClick} />;
     }
   };
 
@@ -121,6 +124,7 @@ export default function App() {
               <option value="CoursePage">课程页面</option>
               <option value="CalendarPage">我的任务</option>
               <option value="ChatPage">💬 聊天页面</option>
+              <option value="CodeEditorPage">代码编辑和运行</option>
             </select>
             <button
               onClick={handleLogout}
