@@ -1,15 +1,16 @@
 // src/pages/DisplayPage.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { SidePanelProvider, useSidePanel } from './SidePanelContext';
+import { SidePanelProvider, } from './SidePanelContext';
 import PDFViewer from './PDFViewer';
 import CommentOverlay from './CommentOverlay';
-import CodeAnnotation from './CodeAnnotation';
 import SidePanelContainer from './SidePanelContainer';
 import CommentToolbar, { CommentMode } from './CommentToolbar';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { CommentData, CodeSnippetData, RawCommentInput } from '../types/annotations';
+import { CommentData, RawCommentInput } from '../types/annotations';
 import { getVsCodeApi } from '../vscodeApi';
-import { usePDFMetrics } from './PDFViewer';
+import type { PageMetrics } from './PDFViewer';
+import { CurrentPageCodeDisplay } from './CurrentPageCodeDisplay';
+import { PageBoundCodeBlocks } from './PageBoundCodeBlocks';
 
 interface DisplayPageProps {
   filePath: string;
@@ -33,19 +34,41 @@ interface NewComment {
   content: string;
 }
 
-const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath, username }) => {
-  console.log('PageLayout: 已进入, filePath =', filePath);
-  const { openPanels } = useSidePanel();
+interface CodeBlock {
+  language: string;
+  content: string;
+  page: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface CodeBlockJson {
+  language: string;
+  code: string;
+  page: number;
+  position?: [number, number, number, number];
+}
+
+const PageLayout: React.FC<{ 
+  filePath: string, 
+  username: string,
+  pageMetrics: PageMetrics[],
+  onMetricsChange: (metrics: PageMetrics[]) => void
+}> = ({ filePath, username, pageMetrics, onMetricsChange }) => {
+  // const { openPanels } = useSidePanel();
   const [comments, setComments] = useState<CommentData[]>([]);
   const [commentMode, setCommentMode] = useState<CommentMode>('none');
-  const dummyCodeBlocks: CodeSnippetData[] = [
-    { id: 'code1', page: 2, content: 'console.log("Hello World");', position: { x: 0.5, y: 0.5, width: 0.6, height: 0.1 } }
-  ];
-  
   const [tempPosition, setTempPosition] = useState<CommentPosition | null>(null);
   const [previewPosition, setPreviewPosition] = useState<CommentPosition | null>(null);
   const [showCommentDialog, setShowCommentDialog] = useState(false);
-  const pageMetrics = usePDFMetrics();
+  const [currentPage,] = useState(1);
+  const [allBlocks, setAllBlocks] = useState<CodeBlock[]>([]);
+  // const [selectedBlocks, setSelectedBlocks] = useState<CodeBlock[]>([]);
+  // const [runResults, setRunResults] = useState<{ [key: number]: string }>({});
+
+  const currentPageBlocks = allBlocks.filter(b => b.page === currentPage);
 
   // 获取评论
   useEffect(() => {
@@ -74,6 +97,17 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
         setComments(message.comments);
       } else if (message.command === 'getAllCommentsError') {
         console.error('PageLayout: 获取评论失败', message.error);
+      } else if (message.command === 'pdfCodeBlocks') {
+        const rawBlocks = JSON.parse(message.data);
+        setAllBlocks(rawBlocks.map((block: CodeBlockJson) => ({
+          language: block.language,
+          content: block.code,
+          page: block.page,
+          x: block.position?.[0] ?? 0,
+          y: block.position?.[1] ?? 0,
+          width: block.position?.[2] ?? 0,
+          height: block.position?.[3] ?? 0,
+        })));
       }
     };
   
@@ -118,10 +152,6 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
         position: {
           x: position.x1,
           y: position.y1,
-          // ...(position.width && { width: position.width }),
-          // ...(position.height && { height: position.height }),
-          // ...(position.x2 && { x2: position.x2 }),
-          // ...(position.y2 && { y2: position.y2 })
         },
         author: username,
         time: new Date().toISOString(),
@@ -175,13 +205,6 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
 
     const toolbar = document.querySelector('.comment-toolbar');
     if (toolbar && toolbar.contains(e.target as Node)) return;
-
-    // const rect = e.currentTarget.getBoundingClientRect();
-    // const x = (e.clientX - rect.left) / rect.width;
-    // const y = (e.clientY - rect.top) / rect.height;
-    // const pageIndex = pageMetrics.findIndex(metric => 
-    //   e.clientY >= metric.offsetY && e.clientY <= metric.offsetY + metric.height
-    // );
 
     const container = e.currentTarget;
     const rect = container.getBoundingClientRect();
@@ -259,10 +282,6 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
     if (commentMode === 'none' || !tempPosition) return;
     if (tempPosition.type === 'text') return;
   
-    // const rect = e.currentTarget.getBoundingClientRect();
-    // const x = (e.clientX - rect.left) / rect.width;
-    // const y = (e.clientY - rect.top) / rect.height;
-
     const container = e.currentTarget;
     const rect = container.getBoundingClientRect();
     const scrollTop = container.scrollTop;
@@ -302,49 +321,68 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
       };
     }
     setPreviewPosition(newPreview);
-    // console.log('handleMouseMove: 鼠标移动事件, 最终位置: (', previewPosition?.x1, previewPosition?.y1, previewPosition?.x2, previewPosition?.y2, ')');
-  }, [commentMode, previewPosition, tempPosition]);
+  }, [commentMode, tempPosition, pageMetrics]);
 
-  // 判断侧边栏
-  const hasCode = openPanels.some(p => p.type === 'code');
-  const left = hasCode ? 70 : 80;
-  const right = 100 - left;
+  const handleOpenCodeEditor = useCallback((block: CodeBlock) => {
+    const vscode = getVsCodeApi();
+    if (vscode) {
+      vscode.postMessage({
+        command: 'openCodeInEditor',
+        code: block.content,
+        language: block.language || 'text',
+      });
+    }
+  }, []);
 
-  const renderContent = () => (
-    <>
-      <CommentOverlay 
-        data={comments} 
-        onPDFClick={handlePDFClick}
-        onMouseMove={handleMouseMove}
-        previewPosition={previewPosition}
-      />
-      <CodeAnnotation data={dummyCodeBlocks} />
-      <CommentToolbar
-        currentMode={commentMode}
-        onModeChange={setCommentMode}
-        onAddComment={handleAddComment}
-        showDialog={showCommentDialog}      // ✅ 传入是否显示
-        pendingPosition={tempPosition}      // ✅ 传入临时位置信息
-        onCancelDialog={() => {
-          setShowCommentDialog(false)       // ✅ 控制弹窗关闭
-          setPreviewPosition(null); // ✅ 清除预览
-          setTempPosition(null);    // ✅ 可选：清除临时起始点
-        }}
-      />
-    </>
-  );
-
-  if (openPanels.length === 0) {
-    return renderContent();
-  }
+  // 布局分配
+  const codeWidth = 15;
+  const pdfWidth = 70;
+  const rightWidth = 15;
 
   return (
     <PanelGroup direction="horizontal">
-      <Panel defaultSize={left}>
-        {renderContent()}
+      {/* 左侧代码编辑器面板 */}
+      <Panel defaultSize={codeWidth} minSize={15} maxSize={15}>
+        <CurrentPageCodeDisplay codeBlocks={currentPageBlocks} />
       </Panel>
       <PanelResizeHandle className="resize-handle" />
-      <Panel defaultSize={right}>
+      
+      {/* 中间PDF查看器面板 */}
+      <Panel defaultSize={pdfWidth} minSize={40}>
+        <PDFViewer 
+          filePath={filePath}
+          onMetricsChange={onMetricsChange}
+        >
+          <CommentOverlay 
+            data={comments} 
+            onPDFClick={handlePDFClick}
+            onMouseMove={handleMouseMove}
+            previewPosition={previewPosition}
+            pageMetrics={pageMetrics}
+          />
+          <PageBoundCodeBlocks 
+            codeBlocks={allBlocks}
+            page={currentPage}
+            onOpenCodeEditor={handleOpenCodeEditor}
+          />
+          <CommentToolbar
+            currentMode={commentMode}
+            onModeChange={setCommentMode}
+            onAddComment={handleAddComment}
+            showDialog={showCommentDialog}
+            pendingPosition={tempPosition}
+            onCancelDialog={() => {
+              setShowCommentDialog(false);
+              setPreviewPosition(null);
+              setTempPosition(null);
+            }}
+          />
+        </PDFViewer>
+      </Panel>
+      <PanelResizeHandle className="resize-handle" />
+      
+      {/* 右侧评论面板 */}
+      <Panel defaultSize={rightWidth} minSize={15} maxSize={40}>
         <SidePanelContainer />
       </Panel>
     </PanelGroup>
@@ -352,13 +390,16 @@ const PageLayout: React.FC<{ filePath: string, username: string }> = ({ filePath
 };
 
 const DisplayPage: React.FC<DisplayPageProps> = ({ filePath, username }) => {
-  console.log('已进入 DisplayPage, filePath =', filePath);
-
+  const [pageMetrics, setPageMetrics] = useState<PageMetrics[]>([]);
+  
   return (
     <SidePanelProvider>
-      <PDFViewer filePath={filePath}>
-        <PageLayout filePath={filePath} username={username} />
-      </PDFViewer>
+      <PageLayout 
+        filePath={filePath} 
+        username={username}
+        pageMetrics={pageMetrics}
+        onMetricsChange={setPageMetrics}
+      />
     </SidePanelProvider>
   );
 };

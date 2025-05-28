@@ -1,19 +1,25 @@
 import React from 'react';
 import { useSidePanel } from './SidePanelContext';
-import { usePDFMetrics } from './PDFViewer';
 import { CommentData } from '../types/annotations';
 import { CommentPosition } from './DisplayPage';
+import { PageMetrics } from './PDFViewer';
 
 interface Props {
   data: CommentData[];
   onPDFClick?: (e: React.MouseEvent) => void;
   onMouseMove?: (e: React.MouseEvent) => void;
   previewPosition?: CommentPosition | null;
+  pageMetrics: PageMetrics[];
 }
 
-const CommentOverlay: React.FC<Props> = ({ data: comments, onPDFClick, onMouseMove, previewPosition }) => {
+const CommentOverlay: React.FC<Props> = ({ 
+  data: comments, 
+  onPDFClick, 
+  onMouseMove, 
+  previewPosition,
+  pageMetrics
+}) => {
   const { openPanel } = useSidePanel();
-  const pageMetrics = usePDFMetrics();
 
   const handleClick = (comment: CommentData) => {
     if (!comment.content) return;
@@ -41,19 +47,19 @@ const CommentOverlay: React.FC<Props> = ({ data: comments, onPDFClick, onMouseMo
         if (!pos) return null;
 
         if (comment.type === 'text' && 'x' in pos && 'y' in pos) {
-            const left = metric.offsetX + pos.x * metric.width;
-            const top = metric.offsetY + pos.y * metric.height;
-            return (
-              <div
-                key={comment.id}
-                className="comment-icon absolute cursor-pointer"
-                style={{ left, top }}
-                onClick={() => handleClick(comment)}
-                title={comment.content ? "查看评论" : "无评论内容"}
-              >
-                💬
-              </div>
-            );
+          const left = metric.offsetX + pos.x * metric.width;
+          const top = metric.offsetY + pos.y * metric.height;
+          return (
+            <div
+              key={comment.id}
+              className="comment-icon absolute cursor-pointer"
+              style={{ left, top }}
+              onClick={() => handleClick(comment)}
+              title={comment.content ? "查看评论" : "无评论内容"}
+            >
+              💬
+            </div>
+          );
         }
 
         if (comment.type === 'highlight' && 'x' in pos && 'y' in pos && 'width' in pos && 'height' in pos) {

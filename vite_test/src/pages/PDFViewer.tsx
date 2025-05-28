@@ -4,7 +4,7 @@ import * as pdfjs from "pdfjs-dist";
 import { PDFDocumentProxy } from "pdfjs-dist";
 import { getVsCodeApi } from "../vscodeApi";
 
-type PageMetrics = {
+export type PageMetrics = {
   width: number;
   height: number;
   offsetY: number;
@@ -20,9 +20,10 @@ const PDFContext = createContext<PDFContextValue | null>(null);
 interface PDFViewerProps {
   filePath: string;
   children?: React.ReactNode;
+  onMetricsChange?: (metrics: PageMetrics[]) => void;  // 新增
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ filePath, children }) => {
+const PDFViewer: React.FC<PDFViewerProps> = ({ filePath, children, onMetricsChange }) => {
   const [workerPath, setWorkerPath] = useState<string | null>(null);
   const [pdfPath, setPdfPath] = useState<string>('');
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
@@ -171,6 +172,13 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ filePath, children }) => {
       setPageMetrics(newMetrics);
     });
   }, [pageMetrics]);
+
+  // 添加新的 useEffect 来通知父组件 metrics 变化
+  useEffect(() => {
+    if (pageMetrics.length > 0 && onMetricsChange) {
+      onMetricsChange(pageMetrics);
+    }
+  }, [pageMetrics, onMetricsChange]);
 
   if (pageMetrics.length === 0) {
     return <div className="text-center text-gray-500">Loading PDF…</div>;
