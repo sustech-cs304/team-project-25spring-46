@@ -65,17 +65,23 @@ const ChatPage: React.FC = () => {
     const [newTaskAssignee, setNewTaskAssignee] = useState<string>('');
     const [groupMembers, setGroupMembers] = useState<User[]>([]);
     const [showGroupMembersModal, setShowGroupMembersModal] = useState(false);
+    const [showAddMembersModal, setShowAddMembersModal] = useState(false);
+    const [addableUsers, setAddableUsers] = useState<User[]>([]);
+    const [selectedRemoveUsers, setSelectedRemoveUsers] = useState<User[]>([]);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     // Modal states
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalType, setModalType] = useState<'friend' | 'group' | null>(null);
     const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
     const [groupName, setGroupName] = useState('');
-  useEffect(() => {
-    // 初始化加载用户 ID 和用户列表
-    vscode?.postMessage({ command: 'getCurrentUserid' });
-    vscode?.postMessage({ command: 'getUsers' });
-  }, []); // 只在初次加载时运行
+
+
+    useEffect(() => {
+        // 初始化加载用户 ID 和用户列表
+        vscode?.postMessage({command: 'getCurrentUserid'});
+        vscode?.postMessage({command: 'getUsers'});
+    }, []); // 只在初次加载时运行
 
     useEffect(() => {
         // 监听 message 事件处理各种结果
@@ -157,8 +163,6 @@ const ChatPage: React.FC = () => {
                         }
                     }
                     break;
-
-
                 case 'sendFriendsMessageResult':
                 case 'sendGroupMessageResult':
                     if (msg.success) {
@@ -181,8 +185,22 @@ const ChatPage: React.FC = () => {
                     break;
                 case 'getGroupUsersResult':
                     if (msg.success && msg.users) {
-                        setGroupMembers(msg.users); // 重用已存在的 selectedUsers 状态
-                        setShowGroupMembersModal(true);
+                        setGroupMembers(msg.users);
+                        if (showAddMembersModal && selectedChat) {
+                            const memberIds = msg.users.map((u: User) => u.id);
+                            setAddableUsers(userList.filter(u => !memberIds.includes(u.id) && u.id !== currentUserId));
+                        }
+                    }
+                    break;
+                case 'removeGroupMembersResult':
+                    if (msg.success) {
+                        if (selectedChat) {
+                            vscode.postMessage({command: 'getGroupUsers', groupId: selectedChat.id});
+                        }
+                        setSelectedRemoveUsers([]);
+                        setShowGroupMembersModal(false);
+                    } else {
+                        setErrorMessage('删除失败：' + (msg.error || '未知错误'));
                     }
                     break;
                 case 'getGroupTasksResult':
@@ -190,7 +208,6 @@ const ChatPage: React.FC = () => {
                         setTasks(msg.tasks);
                     }
                     break;
-
                 case 'createTaskResult':
                 case 'updateTaskResult':
                 case 'deleteTaskResult':
@@ -464,12 +481,26 @@ const ChatPage: React.FC = () => {
                         <div className="chat-header">
                             <h3>{selectedChat.name}</h3>
                             {selectedChat.type === 'group' && (
-                                <button
-                                    className="view-members-button"
-                                    onClick={() => vscode?.postMessage({ command: 'getGroupUsers', groupId: selectedChat.id })}
-                                >
-                                    查看群成员
-                                </button>
+                                <>
+                                    <button
+                                        className="view-members-button"
+                                        onClick={() => {
+                                            vscode?.postMessage({command: 'getGroupUsers', groupId: selectedChat.id});
+                                            setShowGroupMembersModal(true);
+                                        }}
+                                    >
+                                        查看群成员
+                                    </button>
+                                    <button
+                                        className="view-members-button"
+                                        onClick={() => {
+                                            vscode?.postMessage({command: 'getGroupUsers', groupId: selectedChat.id});
+                                            setShowAddMembersModal(true);
+                                        }}
+                                    >
+                                        添加成员
+                                    </button>
+                                </>
                             )}
                         </div>
                         <div className="messages">
@@ -497,32 +528,111 @@ const ChatPage: React.FC = () => {
                             <button onClick={handleSendMessage}>Send</button>
                         </div>
 
-                        {/* Task List Section - Only show for group chats */}
                         {selectedChat.type === 'group' && (
                             <div className="task-section">
                                 <div className="task-header">
                                     <h3>Group Tasks</h3>
-                                    <button className="task-header-button" onClick={() => setIsTaskModalOpen(true)}>Create Task</button>
+                                    <button className="task-header-button"
+                                            onClick={() => setIsTaskModalOpen(true)}>Create Task
+                                    </button>
                                 </div>
+
+                                {isTaskModalOpen && (
+                                    <div className="task-form">
+                                        <div className="form-group">
+                                            <label htmlFor="taskTitle">Task Title *</label>
+                                            <input
+                                                id="taskTitle"
+                                                type="text"
+                                                value={newTaskTitle}
+                                                onChange={(e) => setNewTaskTitle(e.target.value)}
+                                                placeholder="Enter task title"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="taskDetails">Task Details</label>
+                                            <textarea
+                                                id="taskDetails"
+                                                value={newTaskDetails}
+                                                onChange={(e) => setNewTaskDetails(e.target.value)}
+                                                placeholder="Enter task details"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="taskDueDate">Due Date *</label>
+                                            <input
+                                                id="taskDueDate"
+                                                type="date"
+                                                value={newTaskDueDate}
+                                                onChange={(e) => setNewTaskDueDate(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="taskPriority">Priority *</label>
+                                            <select
+                                                id="taskPriority"
+                                                value={newTaskPriority}
+                                                onChange={(e) => setNewTaskPriority(e.target.value)}
+                                            >
+                                                <option value="low">Low Priority</option>
+                                                <option value="medium">Medium Priority</option>
+                                                <option value="high">High Priority</option>
+                                            </select>
+                                        </div>
+                                        <div className="form-group">
+                                            <label htmlFor="taskAssignee">Assignee *</label>
+                                            <select
+                                                id="taskAssignee"
+                                                value={newTaskAssignee}
+                                                onChange={(e) => setNewTaskAssignee(e.target.value)}
+                                            >
+                                                <option value="">Select Assignee</option>
+                                                {groupMembers.map(member => (
+                                                    <option key={member.id} value={member.id}>
+                                                        {member.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="task-form-buttons">
+                                            <button onClick={editingTask ? handleSaveTaskUpdate : handleCreateTask}>
+                                                {editingTask ? 'Save Changes' : 'Create Task'}
+                                            </button>
+                                            <button onClick={() => {
+                                                setIsTaskModalOpen(false);
+                                                setEditingTask(null);
+                                                setNewTaskTitle('');
+                                                setNewTaskDetails('');
+                                                setNewTaskDueDate('');
+                                                setNewTaskPriority('medium');
+                                                setNewTaskAssignee('');
+                                            }}>Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="task-list">
                                     {tasks.map(task => (
-                                        <div key={task.id} className="task-item">
-                                            <div className="task-info">
-                                                <h4>{task.title}</h4>
-                                                <p>{task.details}</p>
-                                                <div className="task-meta">
-                                                    <span>Due: {new Date(task.due_date).toLocaleDateString()}</span>
-                                                    <span>Priority: {task.priority}</span>
-                                                    <span>Assignee: {task.assignee_name || 'Unassigned'}</span>
-                                                </div>
+                                        <div key={task.id}
+                                             className={`task-item${task.completion ? ' completed' : ''}`}>
+                                            <div className="task-header">
+                                                <h3 className="task-title">{task.title}</h3>
+                                                <span className={`priority ${task.priority}`}>{task.priority}</span>
                                             </div>
+                                            <div className="task-meta">
+                                                <span>📅 {new Date(task.due_date).toLocaleDateString()}</span>
+                                                <span>👤 {task.assignee_name || 'Unassigned'}</span>
+                                            </div>
+                                            {task.details && <p className="task-details">{task.details}</p>}
                                             <div className="task-actions">
-                                                <button className="task-action-button" onClick={() => handleUpdateTask(task)}>Edit</button>
-                                                <button className="task-action-button" onClick={() => handleDeleteTask(task.id)}>Delete</button>
+                                                <button onClick={() => handleUpdateTask(task)}>Edit</button>
+                                                <button onClick={() => handleDeleteTask(task.id)}>Delete</button>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
+
                             </div>
                         )}
                     </>
@@ -531,82 +641,90 @@ const ChatPage: React.FC = () => {
                 )}
             </div>
 
-            {/* Task Modal */}
             <Modal
-                isOpen={isTaskModalOpen}
+                isOpen={showAddMembersModal}
+                onRequestClose={() => setShowAddMembersModal(false)}
+                className="modal-content"
+                overlayClassName="modal-overlay"
+            >
+                <h2>添加群成员</h2>
+                <div className="user-list">
+                    {addableUsers.map(user => (
+                        <div
+                            key={user.id}
+                            className={`user-item ${selectedUsers.some(u => u.id === user.id) ? 'selected' : ''}`}
+                            onClick={() => handleUserSelection(user)}
+                            data-avatar={user.name?.charAt(0).toUpperCase() || '?'}
+                        >
+                            <div>
+                                <div>{user.name}</div>
+                                <div>{user.email || '无邮箱信息'}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <button
+                    onClick={() => {
+                        if (selectedUsers.length > 0 && selectedChat) {
+                            vscode.postMessage({
+                                command: 'addGroupMembers',
+                                groupId: selectedChat.id,
+                                memberIds: selectedUsers.map(u => Number(u.id))
+                            });
+                            setSelectedUsers([]);
+                            setShowAddMembersModal(false);
+                        }
+                    }}
+                >
+                    添加成员
+                </button>
+            </Modal>
+
+            <Modal
+                isOpen={showGroupMembersModal}
                 onRequestClose={() => {
-                    setIsTaskModalOpen(false);
-                    setEditingTask(null);
-                    setNewTaskTitle('');
-                    setNewTaskDetails('');
-                    setNewTaskDueDate('');
-                    setNewTaskPriority('medium');
-                    setNewTaskAssignee('');
+                    setShowGroupMembersModal(false);
+                    setSelectedRemoveUsers([]);
                 }}
                 className="modal-content"
                 overlayClassName="modal-overlay"
             >
-                <h2>{editingTask ? 'Edit Task' : 'Create Task'}</h2>
-                <div className="task-form">
-                    <div className="form-group">
-                        <label htmlFor="taskTitle">Task Title *</label>
-                        <input
-                            id="taskTitle"
-                            type="text"
-                            value={newTaskTitle}
-                            onChange={(e) => setNewTaskTitle(e.target.value)}
-                            placeholder="Enter task title"
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="taskDetails">Task Details</label>
-                        <textarea
-                            id="taskDetails"
-                            value={newTaskDetails}
-                            onChange={(e) => setNewTaskDetails(e.target.value)}
-                            placeholder="Enter task details"
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="taskDueDate">Due Date *</label>
-                        <input
-                            id="taskDueDate"
-                            type="date"
-                            value={newTaskDueDate}
-                            onChange={(e) => setNewTaskDueDate(e.target.value)}
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="taskPriority">Priority *</label>
-                        <select
-                            id="taskPriority"
-                            value={newTaskPriority}
-                            onChange={(e) => setNewTaskPriority(e.target.value)}
+                <h2>群成员</h2>
+                <div className="user-list">
+                    {groupMembers.map(user => (
+                        <div
+                            key={user.id}
+                            className={`user-item ${selectedRemoveUsers.some(u => u.id === user.id) ? 'selected' : ''}`}
+                            data-avatar={user.name?.charAt(0).toUpperCase() || '?'}
+                            onClick={() => {
+                                const isSelected = selectedRemoveUsers.some(u => u.id === user.id);
+                                setSelectedRemoveUsers(prev =>
+                                    isSelected ? prev.filter(u => u.id !== user.id) : [...prev, user]
+                                );
+                            }}
                         >
-                            <option value="low">Low Priority</option>
-                            <option value="medium">Medium Priority</option>
-                            <option value="high">High Priority</option>
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="taskAssignee">Assignee *</label>
-                        <select
-                            id="taskAssignee"
-                            value={newTaskAssignee}
-                            onChange={(e) => setNewTaskAssignee(e.target.value)}
-                        >
-                            <option value="">Select Assignee</option>
-                            {groupMembers.map(member => (
-                                <option key={member.id} value={member.id}>
-                                    {member.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <button onClick={editingTask ? handleSaveTaskUpdate : handleCreateTask}>
-                        {editingTask ? 'Save Changes' : 'Create Task'}
-                    </button>
+                            <div>
+                                <div>{user.name}</div>
+                                <div style={{fontSize: '12px', color: '#666'}}>{user.email}</div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
+                <button onClick={() => setShowGroupMembersModal(false)}>关闭</button>
+                <button
+                    onClick={() => {
+                        if (selectedChat && selectedRemoveUsers.length > 0) {
+                            vscode.postMessage({
+                                command: 'removeGroupMembers',
+                                groupId: selectedChat.id,
+                                memberIds: selectedRemoveUsers.map(u => u.id)
+                            });
+                        }
+                    }}
+                    style={{backgroundColor: 'red', color: 'white', marginTop: '10px'}}
+                >
+                    删除选中成员
+                </button>
             </Modal>
 
             <Modal
@@ -632,8 +750,12 @@ const ChatPage: React.FC = () => {
                                 key={user.id}
                                 className={`user-item ${selectedUsers.some(u => u.id === user.id) ? 'selected' : ''}`}
                                 onClick={() => handleUserSelection(user)}
+                                data-avatar={user.name?.charAt(0).toUpperCase() || '?'}
                             >
-                                {user.name}
+                                <div>
+                                    <div>{user.name}</div>
+                                    <div>{user.email || '无邮箱信息'}</div>
+                                </div>
                             </div>
                         ))}
                 </div>
@@ -641,29 +763,15 @@ const ChatPage: React.FC = () => {
                     {modalType === 'friend' ? 'Add Friend' : 'Create Group'}
                 </button>
             </Modal>
-
             <Modal
-                isOpen={showGroupMembersModal}
-                onRequestClose={() => setShowGroupMembersModal(false)}
+                isOpen={!!errorMessage}
+                onRequestClose={() => setErrorMessage(null)}
                 className="modal-content"
                 overlayClassName="modal-overlay"
             >
-                <h2>群成员</h2>
-                <div className="user-list">
-                    {groupMembers.map(user => (
-                        <div
-                            key={user.id}
-                            className="user-item"
-                            data-avatar={user.name?.charAt(0).toUpperCase() || '?'}
-                        >
-                            <div>
-                                <div>{user.name}</div>
-                                <div style={{ fontSize: '12px', color: '#666' }}>{user.email}</div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                <button onClick={() => setShowGroupMembersModal(false)}>关闭</button>
+                <h2>错误</h2>
+                <p>{errorMessage}</p>
+                <button onClick={() => setErrorMessage(null)}>关闭</button>
             </Modal>
         </div>
     );

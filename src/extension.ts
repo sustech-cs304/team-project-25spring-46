@@ -206,41 +206,9 @@ export function activate(context: vscode.ExtensionContext) {
                                 return;
                             }
 
-                            interface TaskWithRelations {
-                                id: number;
-                                title: string;
-                                details: string | null;
-                                due_date: string;
-                                status: string;
-                                priority: string;
-                                completion: boolean;
-                                group_id: number | null;
-                                assignee_id: number | null;
-                                groups: { id: number; name: string } | null;
-                                users: { id: number; name: string } | null;
-                            }
-
                             const {data, error} = await supabase
                                 .from('tasks')
-                                .select(`
-                                    id,
-                                    title,
-                                    details,
-                                    due_date,
-                                    status,
-                                    priority,
-                                    completion,
-                                    group_id,
-                                    assignee_id,
-                                    groups:group_id (
-                                        id,
-                                        name
-                                    ),
-                                    users:assignee_id (
-                                        id,
-                                        name
-                                    )
-                                `)
+                                .select('*')
                                 .eq('assignee_id', currentUserId)
                                 .order('due_date', { ascending: true });
 
@@ -253,19 +221,10 @@ export function activate(context: vscode.ExtensionContext) {
                                 return;
                             }
 
-                            // Transform the data to include group and assignee names
-                            const tasks = ((data as unknown) as TaskWithRelations[]).map(task => ({
-                                ...task,
-                                group_name: task.groups?.name || null,
-                                assignee_name: task.users?.name || null,
-                                groups: undefined, // Remove the nested objects
-                                users: undefined
-                            }));
-
                             panel.webview.postMessage({
                                 command: 'getMyTasksResult',
                                 success: true,
-                                tasks: tasks
+                                tasks: data
                             });
                         } catch (error: any) {
                             panel.webview.postMessage({
@@ -452,6 +411,128 @@ export function activate(context: vscode.ExtensionContext) {
                             panel.webview.postMessage({command: 'aiError', error: error.message});
                         }
                         break;
+                    case 'removeGroupMembers':
+                        try {
+                            const { groupId, memberIds } = message;
+
+                            if (!groupId || !Array.isArray(memberIds) || memberIds.length === 0) {
+                                panel.webview.postMessage({
+                                    command: 'removeGroupMembersResult',
+                                    success: false,
+                                    error: '缺少 groupId 或 memberIds'
+                                });
+                                return;
+                            }
+
+                            // 获取当前群聊信息（查 owner）
+                            const { data: groupData, error: groupError } = await supabase
+                                .from('groups')
+                                .select('owner')
+                                .eq('id', groupId)
+                                .single();
+
+                            if (groupError || !groupData) {
+                                panel.webview.postMessage({
+                                    command: 'removeGroupMembersResult',
+                                    success: false,
+                                    error: '无法获取群聊信息'
+                                });
+                                return;
+                            }
+
+                            // 检查当前登录用户是否是群主
+                            if (currentUserId !== groupData.owner) {
+                                panel.webview.postMessage({
+                                    command: 'removeGroupMembersResult',
+                                    success: false,
+                                    error: '只有群主可以删除成员'
+                                });
+                                return;
+                            }
+
+                            // 群主不能删除自己
+                            const filteredIds = memberIds.filter((id: number) => id !== currentUserId);
+
+                            if (filteredIds.length === 0) {
+                                panel.webview.postMessage({
+                                    command: 'removeGroupMembersResult',
+                                    success: false,
+                                    error: '不能删除群主自己'
+                                });
+                                return;
+                            }
+
+                            // 删除群成员
+                            const { error } = await supabase
+                                .from('group_members')
+                                .delete()
+                                .in('member_id', filteredIds)
+                                .eq('group_id', groupId);
+
+                            if (error) {
+                                panel.webview.postMessage({
+                                    command: 'removeGroupMembersResult',
+                                    success: false,
+                                    error: error.message
+                                });
+                            } else {
+                                panel.webview.postMessage({
+                                    command: 'removeGroupMembersResult',
+                                    success: true
+                                });
+                            }
+                        } catch (err: any) {
+                            panel.webview.postMessage({
+                                command: 'removeGroupMembersResult',
+                                success: false,
+                                error: err.message
+                            });
+                        }
+                        break;
+                    case 'addGroupMembers':
+                        try {
+                            const { groupId, memberIds } = message;
+
+                            if (!groupId || !Array.isArray(memberIds) || memberIds.length === 0) {
+                                panel.webview.postMessage({
+                                    command: 'addGroupMembersResult',
+                                    success: false,
+                                    error: '缺少 groupId 或 memberIds'
+                                });
+                                return;
+                            }
+
+                            // 构建要插入的行（防止重复插入）
+                            const rows = memberIds.map((id: number) => ({
+                                group_id: groupId,
+                                member_id: id
+                            }));
+
+                            const { error } = await supabase
+                                .from('group_members')
+                                .upsert(rows, { onConflict: 'group_id,member_id' });
+
+                            if (error) {
+                                panel.webview.postMessage({
+                                    command: 'addGroupMembersResult',
+                                    success: false,
+                                    error: error.message
+                                });
+                            } else {
+                                panel.webview.postMessage({
+                                    command: 'addGroupMembersResult',
+                                    success: true
+                                });
+                            }
+                        } catch (err: any) {
+                            panel.webview.postMessage({
+                                command: 'addGroupMembersResult',
+                                success: false,
+                                error: err.message
+                            });
+                        }
+                        break;
+
                     case 'generateQuiz':
                         try {
                             const quiz = await generateAIQuiz(message.filePath);

@@ -100,7 +100,7 @@ export default function App() {
             >
               <option value="HomePage">主页</option>
               <option value="CoursePage">课程页面</option>
-              <option value="CalendarPage">日历页面</option>
+              <option value="CalendarPage">我的任务</option>
               <option value="DemoPage">🧪 Demo 测试</option>
               <option value="ChatPage">💬 聊天页面</option>
             </select>
