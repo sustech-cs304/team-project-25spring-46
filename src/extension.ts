@@ -10,6 +10,11 @@ import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 import { activate as activateTestCommands } from './test/testComment';
 import { createNewTask,getMyTasks,getProjectTasks,updateTask,deleteTask} from './taskService';
 import { getProjects } from './projectService';
+import { defaultEnv, runPythonScript, runPythonCode, CondaEnv } from './python_env';
+
+// 声明为全局变量，保持WebView面板的引用
+let activePanel: vscode.WebviewPanel | undefined = undefined;
+
 let currentUserId: number | null = null;
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -25,23 +30,39 @@ export function activate(context: vscode.ExtensionContext) {
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
 	const disposable = vscode.commands.registerCommand('test-combine.openWebview', async () => {
+		// 如果已有面板，重用它
+		if (activePanel) {
+			activePanel.reveal();
+		} else {
+			// 创建新面板
+			activePanel = vscode.window.createWebviewPanel(
+				'myWebview',
+				'Course Aware IDE',
+				vscode.ViewColumn.One,
+				{
+				  enableScripts: true,
+				  localResourceRoots: [
+					vscode.Uri.file(path.join(context.extensionPath, 'dist')),
+					vscode.Uri.file('C:/'),
+					vscode.Uri.file('E:/'),
+					vscode.Uri.file('D:/')
+				  ]
+				}
+			);
+			
+			// 当面板被关闭时清除引用
+			activePanel.onDidDispose(() => {
+				activePanel = undefined;
+			});
+		}
+		
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
 		vscode.window.showInformationMessage('The extension is running!');
-		const panel = vscode.window.createWebviewPanel(
-			'myWebview',
-			'Course Aware IDE',
-			vscode.ViewColumn.One,
-			{
-			  enableScripts: true,
-			  localResourceRoots: [
-				vscode.Uri.file(path.join(context.extensionPath, 'dist')),
-				vscode.Uri.file('C:/')
-			  ]
-			}
-		);
+		const panel = activePanel;
 		const webview = panel.webview;
 		const cspSource = webview.cspSource;
+		const dailyworkEnv = new CondaEnv('conda', 'dailywork');
 		// 用 asWebviewUri 生成两个资源的可访问 URI
 		const demoPdfUri = webview.asWebviewUri(
 			vscode.Uri.file(path.join(context.extensionPath, 'dist', 'assets', 'sample.pdf'))
@@ -87,7 +108,7 @@ export function activate(context: vscode.ExtensionContext) {
 		panel.webview.html = htmlContent;
 
 		panel.webview.onDidReceiveMessage(
-			async message => {
+			async (message: { command: string; [key: string]: any }) => {
 			  switch (message.command) {
 				case 'createCourse':
 					try {
@@ -223,50 +244,198 @@ export function activate(context: vscode.ExtensionContext) {
 					const absolutePath = path.join(coursePath, subfolder, filename);
 					const scriptPath = path.join(context.extensionPath, 'src', 'pdf_test.py');
 					const outPath = path.join(context.extensionPath, 'cr_out');
-					const pythonPath = "C:\\ProgramData\\miniconda3\\python.exe";
-					console.log("executing python script with filePath: ", absolutePath, scriptPath, outPath);
-					exec(`"${pythonPath}" "${scriptPath}" "${absolutePath}" "${outPath}"`, (error, stdout, stderr) => {
-					if (error) {
-						panel.webview.postMessage({ command: 'error', error: error.message });
-						return;
+
+					// 发送开始识别的消息
+					panel.webview.postMessage({ command: 'recognitionStarted' });
+
+					try {
+						// 确保输出目录存在
+						if (!fs.existsSync(outPath)) {
+							fs.mkdirSync(outPath, { recursive: true });
+						}
+
+						// 运行 Python 脚本
+						const command = [absolutePath, outPath];
+						const stdout = dailyworkEnv.runScript(scriptPath, command);
+						
+						// 等待 JSON 文件生成
+						const jsonFilePath = path.join(outPath, path.parse(filename).name + "_code_block.json");
+						let retries = 0;
+						const maxRetries = 10;
+						const checkInterval = 500; // 500ms
+
+						const waitForJson = () => new Promise((resolve, reject) => {
+							const checkFile = () => {
+								if (fs.existsSync(jsonFilePath)) {
+									try {
+										const jsonContent = fs.readFileSync(jsonFilePath, 'utf-8');
+										resolve(jsonContent);
+									} catch (err) {
+										reject(err);
+									}
+								} else if (retries < maxRetries) {
+									retries++;
+									setTimeout(checkFile, checkInterval);
+								} else {
+									reject(new Error('JSON 文件生成超时'));
+								}
+							};
+							checkFile();
+						});
+
+						// 等待 JSON 文件生成并读取内容
+						const jsonContent = await waitForJson();
+						
+						// 发送识别结果
+						panel.webview.postMessage({ 
+							command: 'pdfCodeBlocks', 
+							data: jsonContent 
+						});
+						
+						// 发送识别完成的消息
+						panel.webview.postMessage({ command: 'recognitionCompleted' });
+					} catch (error: any) {
+						console.error('代码识别错误:', error);
+						panel.webview.postMessage({ 
+							command: 'recognitionError', 
+							error: error.message 
+						});
+						vscode.window.showErrorMessage(`代码识别失败: ${error.message}`);
 					}
-			
-					// 解析输出的代码文件路径 (每一行一个)
-					const codeFiles = stdout.trim().split('\n');
-					// Promise.all(codeFiles.map(async (codePath) => ({
-					// 	path: codePath,
-					// 	content: await fs.promises.readFile(codePath, 'utf-8')
-					// }))).then((codes) => {
-					// 	panel.webview.postMessage({ command: 'codeRecognitionResult', codes });
-					// });
-					const codes = codeFiles.map((content, index) => ({
-						path: `Snippet ${index + 1}`,
-						content
-						}));
-						panel.webview.postMessage({ command: 'codeRecognitionResult', codes });
-					});
 				} catch (err: any) {
-					panel.webview.postMessage({ command: 'error', error: err.message });
+					console.error('代码识别错误:', err);
+					panel.webview.postMessage({ 
+						command: 'recognitionError', 
+						error: err.message 
+					});
+					vscode.window.showErrorMessage(`代码识别失败: ${err.message}`);
 				}
-					break;
-				case 'openFile':
-				try{
+				break;
+				case 'openFile': {
+				  try {
 					const filePath = message.filePath;
-                    vscode.window.showInformationMessage(`打开 PDF 文件: ${filePath}`);
-                    try {
-						const jsonFilePath = path.join(context.extensionPath, 'cr_out') + "\\" + path.parse(filePath).name + "_code_block.json";
-                        const jsonContent = await vscode.workspace.fs.readFile(vscode.Uri.file(jsonFilePath));
-                        const jsonString = Buffer.from(jsonContent).toString('utf-8');
-                        vscode.window.showInformationMessage(`JSON 文件内容: ${jsonString}`);
-						panel.webview.postMessage({command: 'pdfCodeBlocks', data: jsonString});
-                    } catch (error) {
-                        vscode.window.showErrorMessage(`无法读取 JSON 文件: ${error}`);
-                    }
+					
+					console.log(`打开文件: ${filePath}`);
+					vscode.window.showInformationMessage(`打开 PDF 文件: ${filePath}`);
+					
+					// 尝试获取 PDF 的绝对路径
+					const absolutePath = await getFileAbsolutePath(filePath);
+					const pdfPath = vscode.Uri.file(absolutePath);
+					const pdfUri = panel.webview.asWebviewUri(pdfPath);
+					panel.webview.postMessage({ command: 'PdfPath', path: pdfUri.toString() });
+					
+					// 检查 JSON 文件是否存在
+					const jsonFileName = path.parse(filePath).name + "_code_block.json";
+					const jsonFilePath = path.join(context.extensionPath, 'cr_out', jsonFileName);
+					
+					console.log(`检查JSON文件路径: ${jsonFilePath}`);
+					
+					if (fs.existsSync(jsonFilePath)) {
+					  try {
+						const jsonContent = fs.readFileSync(jsonFilePath, 'utf-8');
+						// 输出 JSON 文件内容到扩展终端
+						console.log(`读取到 JSON 文件内容长度: ${jsonContent.length}`);
+						console.log(`JSON内容片段: ${jsonContent.substring(0, 200)}...`);
+						
+						// 确保JSON格式正确
+						const parsedJson = JSON.parse(jsonContent);
+						console.log(`解析后的JSON对象包含 ${parsedJson.length} 个代码块`);
+						
+						// 将读取到的代码块 JSON 数据发送到 Webview
+						panel.webview.postMessage({
+						  command: 'pdfCodeBlocks',
+						  data: jsonContent
+						});
+						
+						console.log('已发送pdfCodeBlocks消息到前端');
+					  } catch (err) {
+						// 安全地获取错误信息
+						const errorMessage = err instanceof Error ? err.message : String(err);
+						console.error(`读取或解析JSON文件失败:`, err);
+						panel.webview.postMessage({ 
+						  command: 'error', 
+						  error: `读取代码块数据失败: ${errorMessage}` 
+						});
+					  }
+					} else {
+					  console.log(`没有找到代码块 JSON 文件: ${jsonFilePath}`);
+					  // 可能需要触发代码识别来生成JSON
+					  if (message.needCodeRecognition) {
+						console.log('文件打开时自动触发代码识别');
+						// 自动触发代码识别 - 将相关代码从runCodeRecognition命令处理程序复制到这里
+						// ...代码识别逻辑...
+					  }
+					}
+				  } catch (err) {
+					// 安全地获取错误信息
+					const errorMessage = err instanceof Error ? err.message : String(err);
+					console.error('打开文件失败:', err);
+					panel.webview.postMessage({ command: 'error', error: errorMessage });
+					vscode.window.showErrorMessage(`打开文件失败: ${errorMessage}`);
+				  }
+				  break;
 				}
-				catch(err: any) {
-					panel.webview.postMessage({command: 'error', error: err.message});
+				case 'runCodeBlock':
+				try {
+					const { code, language } = message;
+					// 这里只以 python 为例，其他语言可自行扩展
+					if (language === 'Python') {
+						const tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.py');
+						fs.writeFileSync(tmpPath, code, 'utf-8');
+						exec(`python "${tmpPath}"`, (error, stdout, stderr) => {
+							if (error) {
+								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stderr || error.message });
+							} else {
+								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stdout });
+							}
+						});
+					}
+					else if (language === 'C') {
+						const tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.c');
+						fs.writeFileSync(tmpPath, code, 'utf-8');
+						exec(`gcc "${tmpPath}"\n ./a.exe`, (error, stdout, stderr) => {
+							if (error) {
+								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stderr || error.message });
+							} else {
+								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stdout });
+							}
+						});
+					}
+					else if (language === 'C++') {
+						const tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.cpp');
+						fs.writeFileSync(tmpPath, code, 'utf-8');
+						exec(`g++ "${tmpPath}"\n ./a.exe`, (error, stdout, stderr) => {
+							if (error) {
+								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stderr || error.message });
+							}
+							else {
+								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stdout });
+							}
+						});
+					}
+					else if (language === 'Java') {
+						const match = code.match(/public\s+class\s+([A-Za-z_][A-Za-z0-9_]*)/);
+						let tmpPath = path.join(context.extensionPath, 'cr_out');
+    					if (match && match[1]) {
+							tmpPath = path.join(tmpPath, match[1], '.java');
+						}
+						fs.writeFileSync(tmpPath, code, 'utf-8');
+						exec(`javac "${tmpPath}"\n java -cp "${path.dirname(tmpPath)}" "${path.basename(tmpPath, '.java')}"`, (error, stdout, stderr) => {
+							if (error) {
+								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stderr || error.message });
+							}
+							else {
+								panel.webview.postMessage({ command: 'runCodeBlockResult', result: stdout });
+							}
+						});
+					}
+					else {
+						panel.webview.postMessage({ command: 'runCodeBlockResult', result: '暂不支持该语言运行' });
+					}
+				} catch (err: any) {
+					panel.webview.postMessage({ command: 'runCodeBlockResult', result: err.message });
 				}
-					break;
+				break;
 				case 'generateSummary':
 					try {
 						const summary = await generateAISummary(message.filePath);
@@ -413,7 +582,334 @@ export function activate(context: vscode.ExtensionContext) {
 				panel.webview.postMessage({ command: 'error', error: error.message });
 				}
 				break;
+				case 'getAvailableEnvironments':
+					try {
+						// 这里可以使用 which python、conda env list 等命令获取环境列表
+						// 简单示例：
+						exec('conda env list', (error, stdout, stderr) => {
+							if (error) {
+								panel.webview.postMessage({ 
+								  command: 'availableEnvironments', 
+								  environments: ['默认环境'] 
+								});
+								return;
+							}
+							
+							// 解析 conda 环境列表
+							const envs = stdout
+								.split('\n')
+								.filter(line => line.trim() && !line.startsWith('#'))
+								.map(line => line.split(/\s+/)[0].trim())
+								.filter(env => env);
+							
+							panel.webview.postMessage({ 
+								command: 'availableEnvironments', 
+								environments: envs.length ? envs : ['默认环境'] 
+							});
+						});
+					} catch (error: any) {
+						panel.webview.postMessage({ 
+							command: 'availableEnvironments', 
+							environments: ['默认环境'] 
+						});
+					}
+					break;
+				case 'runCode':
+					try {
+						const { code, language, compiler } = message;
+						let command = '';
+						let tmpPath = '';
+						
+						// 首先检查编译器是否存在
+						const checkCompiler = () => {
+							return new Promise<boolean>((resolve) => {
+								let checkCmd = '';
+								
+								switch (language) {
+									case 'Python':
+										if (compiler && compiler !== '默认环境') {
+											checkCmd = `conda env list | findstr "${compiler}"`;
+										} else {
+											checkCmd = 'python --version';
+										}
+										break;
+									case 'C':
+										checkCmd = 'gcc --version';
+										break;
+									case 'C++':
+										checkCmd = 'g++ --version';
+										break;
+									case 'Java':
+										checkCmd = 'javac -version';
+										break;
+									default:
+										resolve(false);
+										return;
+								}
+								
+								exec(checkCmd, (error) => {
+									resolve(!error);
+								});
+							});
+						};
+						
+						const compilerExists = await checkCompiler();
+						
+						if (!compilerExists) {
+							panel.webview.postMessage({ 
+								command: 'runCodeResult', 
+								result: `错误: 未检测到${language}所需的编译器/解释器，请安装相应的开发环境。` 
+							});
+							vscode.window.showErrorMessage(`未检测到${language}所需的编译器/解释器，请安装相应的开发环境。`);
+							return;
+						}
+						
+						// 编译器存在，继续执行代码
+						// 保持原有的运行逻辑...
+						if (language === 'Python') {
+							tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.py');
+							fs.writeFileSync(tmpPath, code, 'utf-8');
+							
+							// 如果有指定环境，使用 conda 运行
+							if (compiler && compiler !== '默认环境') {
+								command = `conda run -n ${compiler} python "${tmpPath}"`;
+							} else {
+								command = `python "${tmpPath}"`;
+							}
+						} else if (language === 'C') {
+							tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.c');
+							fs.writeFileSync(tmpPath, code, 'utf-8');
+							command = `gcc "${tmpPath}" -o "${tmpPath}.exe" && "${tmpPath}.exe"`;
+						} else if (language === 'C++') {
+							tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.cpp');
+							fs.writeFileSync(tmpPath, code, 'utf-8');
+							command = `g++ "${tmpPath}" -o "${tmpPath}.exe" && "${tmpPath}.exe"`;
+						} else if (language === 'Java') {
+							// 提取类名
+							const match = code.match(/public\s+class\s+([A-Za-z_][A-Za-z0-9_]*)/);
+							const className = match && match[1] ? match[1] : 'Main';
+							
+							tmpPath = path.join(context.extensionPath, 'cr_out', `${className}.java`);
+							fs.writeFileSync(tmpPath, code, 'utf-8');
+							command = `javac "${tmpPath}" && java -cp "${path.dirname(tmpPath)}" ${className}`;
+						}
+						
+						// 运行命令
+						exec(command, (error, stdout, stderr) => {
+							if (error) {
+								panel.webview.postMessage({ 
+								  command: 'runCodeResult', 
+								  result: stderr || error.message 
+								});
+							} else {
+								panel.webview.postMessage({ 
+								  command: 'runCodeResult', 
+								  result: stdout 
+								});
+							}
+						});
+					} catch (error: any) {
+						panel.webview.postMessage({ 
+						  command: 'runCodeResult', 
+						  result: `错误: ${error.message}` 
+						});
+					}
+					break;
+				case 'getAvailableCompilers':
+					try {
+						const { language } = message;
+						let command = '';
+						
+						switch(language) {
+							case 'Python':
+								command = 'conda env list';
+								exec(command, (error, stdout, stderr) => {
+									if (error) {
+										panel.webview.postMessage({ 
+											command: 'availableCompilers', 
+											language,
+											compilers: ['默认环境'],
+											hasCompiler: true
+										});
+										return;
+									}
+									
+									// 解析 conda 环境列表
+									const envs = stdout
+										.split('\n')
+										.filter(line => line.trim() && !line.startsWith('#'))
+										.map(line => line.split(/\s+/)[0].trim())
+										.filter(env => env);
+									
+									panel.webview.postMessage({ 
+										command: 'availableCompilers', 
+										language,
+										compilers: envs.length ? envs : ['默认环境'],
+										hasCompiler: true
+									});
+								});
+								break;
+								
+							case 'C':
+								// 检查 gcc 是否可用
+								exec('gcc --version', (error, stdout, stderr) => {
+									panel.webview.postMessage({ 
+										command: 'availableCompilers', 
+										language,
+										compilers: ['gcc'],
+										hasCompiler: !error
+									});
+									if (error) {
+										vscode.window.showWarningMessage('未检测到 gcc 编译器，C 语言代码可能无法正常运行。');
+									}
+								});
+								break;
+								
+							case 'C++':
+								// 检查 g++ 是否可用
+								exec('g++ --version', (error, stdout, stderr) => {
+									panel.webview.postMessage({ 
+										command: 'availableCompilers', 
+										language,
+										compilers: ['g++'],
+										hasCompiler: !error
+									});
+									if (error) {
+										vscode.window.showWarningMessage('未检测到 g++ 编译器，C++ 语言代码可能无法正常运行。');
+									}
+								});
+								break;
+								
+							case 'Java':
+								// 检查 javac 是否可用
+								exec('javac -version', (error, stdout, stderr) => {
+									panel.webview.postMessage({ 
+										command: 'availableCompilers', 
+										language,
+										compilers: ['javac'],
+										hasCompiler: !error
+									});
+									if (error) {
+										vscode.window.showWarningMessage('未检测到 javac 编译器，Java 代码可能无法正常运行。');
+									}
+								});
+								break;
+								
+							default:
+								panel.webview.postMessage({ 
+									command: 'availableCompilers', 
+									language,
+									compilers: [],
+									hasCompiler: false
+								});
+						}
+					} catch (error: any) {
+						panel.webview.postMessage({ 
+							command: 'availableCompilers',
+							language: message.language,
+							compilers: [],
+							hasCompiler: false,
+							error: error.message
+						});
+					}
+					break;
+				case 'openCodeInEditor': {
+					const { code, language, blockIdx } = message;
+					const ext = (() => {
+						switch ((language || '').toLowerCase()) {
+							case 'python': return 'py';
+							case 'c': return 'c';
+							case 'c++': return 'cpp';
+							case 'java': return 'java';
+							default: return 'txt';
+						}
+					})();
+					const tmpFilePath = path.join(context.extensionPath, 'cr_out', `codeblock_${blockIdx}.${ext}`);
+					fs.writeFileSync(tmpFilePath, code, 'utf-8');
+					vscode.workspace.openTextDocument(tmpFilePath).then(doc => {
+						vscode.window.showTextDocument(doc, { preview: false });
+					});
+					break;
 				}
+				case 'showError':
+					// 显示错误消息
+					vscode.window.showErrorMessage(message.message);
+					break;
+				case 'recognitionStarted':
+					try {
+						panel.webview.postMessage({ command: 'recognitionStarted' });
+					} catch (error: any) {
+						vscode.window.showErrorMessage(`识别开始时出错: ${error.message}`);
+					}
+					break;
+				case 'recognitionCompleted':
+					try {
+						panel.webview.postMessage({ command: 'recognitionCompleted' });
+					} catch (error: any) {
+						vscode.window.showErrorMessage(`识别完成时出错: ${error.message}`);
+					}
+					break;
+				case 'recognitionError':
+					try {
+						vscode.window.showErrorMessage(`代码识别失败: ${message.error}`);
+						panel.webview.postMessage({ 
+							command: 'recognitionError', 
+							error: message.error 
+						});
+					} catch (error: any) {
+						vscode.window.showErrorMessage(`处理识别错误时出错: ${error.message}`);
+					}
+					break;
+				case 'requestCodeBlocks': {
+					try {
+						const filePath = message.filePath;
+						console.log(`收到代码块数据请求: ${filePath}`);
+						
+						// 检查 JSON 文件是否存在
+						const jsonFileName = path.parse(filePath).name + "_code_block.json";
+						const jsonFilePath = path.join(context.extensionPath, 'cr_out', jsonFileName);
+						
+						console.log(`检查JSON文件路径: ${jsonFilePath}`);
+						
+						if (fs.existsSync(jsonFilePath)) {
+							try {
+								const jsonContent = fs.readFileSync(jsonFilePath, 'utf-8');
+								console.log(`读取到 JSON 文件内容长度: ${jsonContent.length}`);
+								
+								// 确保数据有效并能解析
+								JSON.parse(jsonContent); // 验证JSON格式
+								
+								// 添加短暂延迟确保前端已准备好接收
+								setTimeout(() => {
+								  // 使用postMessage发送数据到webview
+								  panel.webview.postMessage({
+									command: 'pdfCodeBlocks',
+									data: jsonContent
+								  });
+								  
+								  console.log('已发送pdfCodeBlocks消息到前端 (响应请求)');
+								}, 300);
+							} catch (err) {
+								// 处理错误...
+							}
+						} else {
+							console.log(`没有找到代码块 JSON 文件: ${jsonFilePath}`);
+							
+							// 发送空数组
+							setTimeout(() => {
+								panel.webview.postMessage({
+								  command: 'pdfCodeBlocks',
+								  data: []
+								});
+								console.log('已发送空的pdfCodeBlocks数组到前端');
+							}, 300);
+						}
+					} catch (err) {
+						// 处理错误...
+					}
+					break;
+				}
+			  }
 			},
 			undefined,
 			context.subscriptions
@@ -424,6 +920,32 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	context.subscriptions.push(disposable);
+
+	// 监听编辑器保存事件，实现同步
+	vscode.workspace.onDidSaveTextDocument((doc) => {
+		const fileName = path.basename(doc.fileName);
+		const match = fileName.match(/^codeblock_(\d+)\.(\w+)$/);
+		if (match) {
+			const blockIdx = parseInt(match[1], 10);
+			const language = match[2];
+			const code = doc.getText();
+			// 发送同步消息到 Webview
+			for (const panel of vscode.window.visibleTextEditors
+				.map(e => e.document.uri.fsPath)
+				.filter(f => f === doc.fileName)
+				.map(() => vscode.window.activeTextEditor?.viewColumn === vscode.ViewColumn.One ? vscode.window.activeTextEditor : null)
+				.filter(Boolean)) {
+				// 这里假设只有一个 Webview，如果有多个需自行管理 panel
+				// 直接发送到当前 panel
+				(panel as any)?.webview?.postMessage?.({
+					command: 'syncCodeBlock',
+					blockIdx,
+					code,
+					language,
+				});
+			}
+		}
+	});
 }
 
 function getCatWebviewContent() {
