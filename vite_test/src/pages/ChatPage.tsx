@@ -221,8 +221,9 @@ const ChatPage: React.FC = () => {
       }
     }, 1000); // 每1秒刷新一次
 
-    return () => clearInterval(interval); // 清理定时器
+    return () => clearInterval(interval);
   }, [selectedChat, currentUserId]);
+
 
 
   const loadUserChats = (userId: string) => {
