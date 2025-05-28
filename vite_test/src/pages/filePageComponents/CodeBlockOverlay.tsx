@@ -18,13 +18,13 @@ interface Props {
 
 export const CodeBlockOverlay: React.FC<Props> = ({ codeBlocks }) => {
   const pageMetrics = usePDFMetrics();
-  console.log('pageMetrics', pageMetrics);
+  // console.log('pageMetrics', pageMetrics);
   const [hovered, setHovered] = useState<number | null>(null);
   const [editing, setEditing] = useState<number | null>(null);
 
   return (
     <>
-      <pre style={{zIndex: 9999, position: 'fixed', top: 0, left: 0, background: '#fff'}}>{JSON.stringify(codeBlocks, null, 2)}</pre>
+      {/* <pre style={{zIndex: 9999, position: 'fixed', top: 0, left: 0, background: '#fff'}}>{JSON.stringify(codeBlocks, null, 2)}</pre> */}
       {codeBlocks.map((block, idx) => {
         const metric = pageMetrics[block.page - 1];
         if (!metric) return null;

@@ -65,7 +65,7 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
       } else if (command === 'runCodeResult') {
         console.log('收到 runCodeResult 消息:', event.data);
         const idx = typeof blockIdx === 'number' ? blockIdx
-                  : (data && typeof data.blockIdx === 'number' ? data.blockIdx : undefined);
+                  : (data && typeof blockIdx === 'number' ? blockIdx : undefined);
         const res = result ?? (data ? data.result : undefined);
         if (typeof idx === 'number') {
           setRunResults(prev => ({ ...prev, [idx]: res || '' }));
@@ -81,9 +81,9 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
 
   useEffect(() => {
     // 当currentPage变化时，输出当前页码和当前页的代码块
-    const blocks = allBlocks.filter(b => b.page === currentPage);
-    console.log(`当前页码: ${currentPage}`);
-    console.log('当前页面中的代码块:', blocks);
+    // const blocks = allBlocks.filter(b => b.page === currentPage);
+    // console.log(`当前页码: ${currentPage}`);
+    // console.log('当前页面中的代码块:', blocks);
   }, [currentPage, allBlocks]);
 
   // 代码块边框渲染组件
@@ -251,9 +251,11 @@ const PageLayout: React.FC<{ filePath: string }> = ({ filePath }) => {
 };
 
 const DisplayPage: React.FC<DisplayPageProps> = ({ filePath }) => (
-  <SidePanelProvider>
-    <PageLayout filePath={filePath} />
-  </SidePanelProvider>
+  <PDFViewer filePath={filePath}>
+    <SidePanelProvider>
+      <PageLayout filePath={filePath} />
+    </SidePanelProvider>
+  </PDFViewer>
 );
 
 export default DisplayPage;

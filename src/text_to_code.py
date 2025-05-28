@@ -161,7 +161,7 @@ def extract_code_blocks_improved(text, lang=None):
         if is_valid_code(code):
             blocks.append(code)
     
-    return postprocess_code_blocks(blocks,lang)
+    return blocks, postprocess_code_blocks(blocks,lang)
 
 def checkcode(text):
     """
@@ -240,11 +240,11 @@ def checkcode(text):
 
     max_score = max(scores.values())
     if max_score <= 5:
-        return False, None, "Unknown"
+        return False, None, None, "Unknown"
     else:
         lang = max(scores, key=scores.get)
-        blocks = extract_code_blocks_improved(text, lang)
-        return True, blocks, lang
+        origin_blocks, blocks = extract_code_blocks_improved(text, lang)
+        return True, origin_blocks, blocks, lang
 
 def is_valid_code(code):
     """判断提取的内容是否为有效的代码块"""
