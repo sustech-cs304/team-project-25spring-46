@@ -222,11 +222,11 @@
 }
 
 /* 用户文本信息部分 */
-.user-item > div > div:first-child {
+.user-item>div>div:first-child {
   font-weight: 600;
 }
 
-.user-item > div > div:last-child {
+.user-item>div>div:last-child {
   font-size: 12px;
   color: #666;
 }
@@ -247,4 +247,93 @@
   margin-left: 10px;
   padding: 4px 8px;
   font-size: 0.9em;
+}
+
+.form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+.group-name-input {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.group-name-input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  outline: none;
+}
+
+
+
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: #4a90e2;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.task-form button {
+  margin-top: 8px;
+  padding: 10px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.task-form button:hover {
+  background-color: #357abd;
+}
+
+.task-header button {
+  padding: 10px 16px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.task-header button:hover {
+  background-color: #357abd;
+}
+
+.task-actions button {
+  padding: 4px 8px;
+  font-size: 0.8em;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  background-color: #f0f0f0;
+  transition: background-color 0.2s ease;
+}
+
+.task-actions button:hover {
+  background-color: #e0e0e0;
 }

@@ -149,7 +149,6 @@ const ChatPage: React.FC = () => {
         case 'getGroupUsersResult':
           if (msg.success && msg.users) {
             setGroupMembers(msg.users); // 重用已存在的 selectedUsers 状态
-            setShowGroupMembersModal(true);
           }
           break;
 
@@ -314,7 +313,10 @@ const ChatPage: React.FC = () => {
               {selectedChat.type === 'group' && (
                 <button
                   className="view-members-button"
-                  onClick={() => vscode?.postMessage({ command: 'getGroupUsers', groupId: selectedChat.id })}
+                  onClick={() => {
+                    vscode?.postMessage({ command: 'getGroupUsers', groupId: selectedChat.id })
+                    setShowGroupMembersModal(true);
+                  }}
                 >
                   查看群成员
                 </button>
@@ -358,13 +360,19 @@ const ChatPage: React.FC = () => {
       >
         <h2>{modalType === 'friend' ? 'Add Friend' : 'Create Group'}</h2>
         {modalType === 'group' && (
-          <input
-            type="text"
-            value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            placeholder="Enter group name"
-          />
+          <div className="form-group">
+            <label htmlFor="groupName">Group Name</label>
+            <input
+              id="groupName"
+              type="text"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="Enter group name"
+              className="group-name-input"
+            />
+          </div>
         )}
+
         <div className="user-list">
           {userList
             .filter(user => user.id !== currentUserId)
