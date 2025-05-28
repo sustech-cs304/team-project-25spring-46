@@ -4,9 +4,22 @@
  * Mock external modules before any imports to prevent side-effects
  */
 jest.mock('pdf-parse', () => jest.fn().mockResolvedValue({ text: 'parsed text' }));
-jest.mock('axios', () => ({
-  post: jest.fn().mockResolvedValue({ data: { choices: [{ message: { content: '   answer ' } }] } }),
-}));
+jest.mock('axios', () => {
+  // post: jest.fn().mockResolvedValue({ data: { choices: [{ message: { content: '   answer ' } }] } }),
+  const instance = {
+    post: jest.fn().mockResolvedValue({ 
+      data: { choices: [{ message: { content: '   answer ' } }] } 
+    }),
+    get: jest.fn()
+  };
+  return {
+    __esModule: true,
+    default: {
+      create: jest.fn(() => instance),
+      ...instance
+    }
+  };
+});
 // Mock database module to avoid real connection and side-effects
 jest.mock('../../src/database', () => ({
   __esModule: true,
