@@ -183,3 +183,20 @@
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
 }
+
+.view-members-button {
+  margin-left: 10px;
+  padding: 4px 8px;
+  font-size: 0.9em;
+}
+
+.modal-content .user-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+
+.modal-content .user-item {
+  padding: 5px;
+  border-bottom: 1px solid #ccc;
+}

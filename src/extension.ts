@@ -3,13 +3,18 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { createNewCourse, getCourses, getCourseSubfolderFiles, getFileDetails, getFileAbsolutePath } from './courseService';
+import {
+	createNewCourse,
+	getCourses,
+	getCourseSubfolderFiles,
+	getFileDetails,
+	getFileAbsolutePath
+} from './courseService';
 import { exec } from 'child_process';
 import pool from './database';
 import supabase, { testSupabaseConnection } from './supabaseClient';
 import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 import { activate as activateTestCommands } from './test/testComment';
-import { createNewTask, getMyTasks, getProjectTasks, updateTask, deleteTask } from './taskService';
 import { getProjects } from './projectService';
 import { getAllComments } from './commentService';
 
@@ -102,38 +107,74 @@ export function activate(context: vscode.ExtensionContext) {
 							});
 
 							if (!courseName) {
-								panel.webview.postMessage({ command: 'createCourseResult', success: false, error: '未输入课程名' });
+								panel.webview.postMessage({
+									command: 'createCourseResult',
+									success: false,
+									error: '未输入课程名'
+								});
 								return;
 							}
 
 							const result = await createNewCourse(courseName);
 							panel.webview.postMessage({ command: 'createCourseResult', success: true, data: result });
 						} catch (error: any) {
-							panel.webview.postMessage({ command: 'createCourseResult', success: false, error: error.message });
+							panel.webview.postMessage({
+								command: 'createCourseResult',
+								success: false,
+								error: error.message
+							});
 						}
 						break;
 					case 'createTask':
 						try {
-							console.log("Extension - createTask message.data:", message.data); // 添加日志
-							const { title, details, due_date, priority, status, course_id, project_id } = message.data; // 确保 status 被接收
+							console.log("Extension - createTask message.data:", message.data);
+							const { title, details, due_date, priority, status, group_id, assignee_id } = message.data;
+
 							// 检查当前用户是否已登录
 							if (currentUserId === null) {
-								panel.webview.postMessage({ command: 'createTaskResult', success: false, error: '用户未登录，无法创建任务' });
+								panel.webview.postMessage({
+									command: 'createTaskResult',
+									success: false,
+									error: '用户未登录，无法创建任务'
+								});
 								return;
 							}
-							const result = await createNewTask({
-								title,
-								details,
-								due_date,
-								priority,
-								status,
-								course_id,
-								project_id,
-								assignee_id: currentUserId, // 假设当前用户 ID 为 1
+
+							const { data, error } = await supabase
+								.from('tasks')
+								.insert([{
+									title,
+									details,
+									due_date,
+									priority,
+									status,
+									group_id,
+									assignee_id: assignee_id || currentUserId,
+									completion: false
+								}])
+								.select()
+								.single();
+
+							if (error) {
+								panel.webview.postMessage({
+									command: 'createTaskResult',
+									success: false,
+									error: error.message
+								});
+								return;
+							}
+
+							panel.webview.postMessage({
+								command: 'createTaskResult',
+								success: true,
+								data: data
 							});
-							panel.webview.postMessage({ command: 'createTaskResult', success: true, data: result });
 						} catch (error: any) {
-							panel.webview.postMessage({ command: 'createTaskResult', success: false, error: error.message });
+							panel.webview.postMessage({
+								command: 'createTaskResult',
+								success: false,
+								error: error.message
+							});
 						}
 						break;
 					case 'getCourses':
@@ -141,61 +182,182 @@ export function activate(context: vscode.ExtensionContext) {
 							const courses = await getCourses();
 							panel.webview.postMessage({ command: 'coursesData', courses });
 						} catch (error: any) {
-							panel.webview.postMessage({ command: 'getCoursesResult', success: false, error: error.message });
+							panel.webview.postMessage({
+								command: 'getCoursesResult',
+								success: false,
+								error: error.message
+							});
 						}
 						break;
 					case 'getMyTasks':
 						try {
 							if (currentUserId === null) {
-								panel.webview.postMessage({ command: 'error', error: '用户未登录，无法获取任务' });
+								panel.webview.postMessage({
+									command: 'getMyTasksResult',
+									success: false,
+									error: '用户未登录，无法获取任务'
+								});
 								return;
 							}
-							const tasks = await getMyTasks(currentUserId); // 使用获取到的用户 ID
-							panel.webview.postMessage({ command: 'getMyTasks', tasks });
+
+							interface TaskWithRelations {
+								id: number;
+								title: string;
+								details: string | null;
+								due_date: string;
+								status: string;
+								priority: string;
+								completion: boolean;
+								group_id: number | null;
+								assignee_id: number | null;
+								groups: { id: number; name: string } | null;
+								users: { id: number; name: string } | null;
+							}
+
+							const { data, error } = await supabase
+								.from('tasks')
+								.select(`
+                                    id,
+                                    title,
+                                    details,
+                                    due_date,
+                                    status,
+                                    priority,
+                                    completion,
+                                    group_id,
+                                    assignee_id,
+                                    groups:group_id (
+                                        id,
+                                        name
+                                    ),
+                                    users:assignee_id (
+                                        id,
+                                        name
+                                    )
+                                `)
+								.eq('assignee_id', currentUserId)
+								.order('due_date', { ascending: true });
+
+							if (error) {
+								panel.webview.postMessage({
+									command: 'getMyTasksResult',
+									success: false,
+									error: error.message
+								});
+								return;
+							}
+
+							// Transform the data to include group and assignee names
+							const tasks = ((data as unknown) as TaskWithRelations[]).map(task => ({
+								...task,
+								group_name: task.groups?.name || null,
+								assignee_name: task.users?.name || null,
+								groups: undefined, // Remove the nested objects
+								users: undefined
+							}));
+
+							panel.webview.postMessage({
+								command: 'getMyTasksResult',
+								success: true,
+								tasks: tasks
+							});
 						} catch (error: any) {
-							panel.webview.postMessage({ command: 'error', error: error.message });
-						}
-						break;
-					case 'getProjectTasks':
-						try {
-							const projectId = 1;
-							const tasks = await getProjectTasks(projectId);
-							panel.webview.postMessage({ command: 'projectTasksData', tasks });
-						} catch (error: any) {
-							panel.webview.postMessage({ command: 'error', error: error.message });
+							panel.webview.postMessage({
+								command: 'getMyTasksResult',
+								success: false,
+								error: error.message
+							});
 						}
 						break;
 					case 'updateTask':
 						try {
-							console.log("Extension - updateTask message.data:", message.data); // 添加日志
-							const { id, title, details, due_date, status, priority, course_id, project_id } = message.data;
-							await updateTask({
+							console.log("Extension - updateTask message.data:", message.data);
+							const {
 								id,
 								title,
 								details,
 								due_date,
 								status,
 								priority,
-								course_id,
-								project_id,
+								group_id,
+								completion
+							} = message.data;
+
+							const updates: any = {};
+							if (title !== undefined) updates.title = title;
+							if (details !== undefined) updates.details = details;
+							if (due_date !== undefined) updates.due_date = due_date;
+							if (status !== undefined) updates.status = status;
+							if (priority !== undefined) updates.priority = priority;
+							if (group_id !== undefined) updates.group_id = group_id;
+							if (completion !== undefined) updates.completion = completion;
+
+							const { data, error } = await supabase
+								.from('tasks')
+								.update(updates)
+								.eq('id', id)
+								.select()
+								.single();
+
+							if (error) {
+								panel.webview.postMessage({
+									command: 'updateTaskResult',
+									success: false,
+									error: error.message
+								});
+								return;
+							}
+
+							panel.webview.postMessage({
+								command: 'updateTaskResult',
+								success: true,
+								data: data
 							});
-							panel.webview.postMessage({ command: 'updateTaskResult', success: true, taskId: id });
 						} catch (error: any) {
-							console.error("Extension - updateTask error:", error); // 添加日志
-							panel.webview.postMessage({ command: 'updateTaskResult', success: false, error: error.message });
+							panel.webview.postMessage({
+								command: 'updateTaskResult',
+								success: false,
+								error: error.message
+							});
 						}
 						break;
 					case 'deleteTask':
 						try {
 							const taskId = message.taskId;
 							if (!taskId) {
-								panel.webview.postMessage({ command: 'error', error: '未提供任务 ID' });
+								panel.webview.postMessage({
+									command: 'deleteTaskResult',
+									success: false,
+									error: '未提供任务 ID'
+								});
 								return;
 							}
-							await deleteTask(taskId);
-							panel.webview.postMessage({ command: 'deleteTaskResult', success: true, taskId });
+
+							const { error } = await supabase
+								.from('tasks')
+								.delete()
+								.eq('id', taskId);
+
+							if (error) {
+								panel.webview.postMessage({
+									command: 'deleteTaskResult',
+									success: false,
+									error: error.message
+								});
+								return;
+							}
+
+							panel.webview.postMessage({
+								command: 'deleteTaskResult',
+								success: true,
+								taskId: taskId
+							});
 						} catch (error: any) {
-							panel.webview.postMessage({ command: 'deleteTaskResult', success: false, error: error.message });
+							panel.webview.postMessage({
+								command: 'deleteTaskResult',
+								success: false,
+								error: error.message
+							});
 						}
 						break;
 					case 'getCourseFiles':
@@ -249,12 +411,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 								// 解析输出的代码文件路径 (每一行一个)
 								const codeFiles = stdout.trim().split('\n');
-								// Promise.all(codeFiles.map(async (codePath) => ({
-								// 	path: codePath,
-								// 	content: await fs.promises.readFile(codePath, 'utf-8')
-								// }))).then((codes) => {
-								// 	panel.webview.postMessage({ command: 'codeRecognitionResult', codes });
-								// });
 								const codes = codeFiles.map((content, index) => ({
 									path: `Snippet ${index + 1}`,
 									content
@@ -278,8 +434,7 @@ export function activate(context: vscode.ExtensionContext) {
 							} catch (error) {
 								vscode.window.showErrorMessage(`无法读取 JSON 文件: ${error}`);
 							}
-						}
-						catch (err: any) {
+						} catch (err: any) {
 							panel.webview.postMessage({ command: 'error', error: err.message });
 						}
 						break;
@@ -993,6 +1148,147 @@ export function activate(context: vscode.ExtensionContext) {
 							panel.webview.postMessage({ command: 'error', error: error.message });
 						}
 						break;
+					case 'getGroupTasks':
+						try {
+							const groupId = message.groupId;
+							if (!groupId) {
+								panel.webview.postMessage({
+									command: 'getGroupTasksResult',
+									success: false,
+									error: '未提供群组 ID'
+								});
+								return;
+							}
+
+							interface TaskWithRelations {
+								id: number;
+								title: string;
+								details: string | null;
+								due_date: string;
+								status: string;
+								priority: string;
+								completion: boolean;
+								group_id: number | null;
+								assignee_id: number | null;
+								groups: { id: number; name: string } | null;
+								users: { id: number; name: string } | null;
+							}
+
+							const { data, error } = await supabase
+								.from('tasks')
+								.select(`
+                                    id,
+                                    title,
+                                    details,
+                                    due_date,
+                                    status,
+                                    priority,
+                                    completion,
+                                    group_id,
+                                    assignee_id,
+                                    groups:group_id (
+                                        id,
+                                        name
+                                    ),
+                                    users:assignee_id (
+                                        id,
+                                        name
+                                    )
+                                `)
+								.eq('group_id', groupId)
+								.order('due_date', { ascending: true });
+
+							if (error) {
+								panel.webview.postMessage({
+									command: 'getGroupTasksResult',
+									success: false,
+									error: error.message
+								});
+								return;
+							}
+
+							// Transform the data to include group and assignee names
+							const tasks = ((data as unknown) as TaskWithRelations[]).map(task => ({
+								...task,
+								group_name: task.groups?.name || null,
+								assignee_name: task.users?.name || null,
+								groups: undefined, // Remove the nested objects
+								users: undefined
+							}));
+
+							panel.webview.postMessage({
+								command: 'getGroupTasksResult',
+								success: true,
+								tasks: tasks
+							});
+						} catch (error: any) {
+							panel.webview.postMessage({
+								command: 'getGroupTasksResult',
+								success: false,
+								error: error.message
+							});
+						}
+						break;
+					//////////////
+					case 'getGroupUsers':
+						try {
+							const groupId = message.groupId;
+							if (!groupId) {
+								panel.webview.postMessage({
+									command: 'getGroupUsersResult',
+									success: false,
+									error: '未提供群组 ID'
+								});
+								return;
+							}
+
+							const { data, error } = await supabase
+								.from('group_members')
+								.select(`
+                                    member_id,
+                                    users:member_id (
+                                        id,
+                                        name,
+                                        email,
+                                        role
+                                    )
+                                `)
+								.eq('group_id', groupId);
+
+							if (error) {
+								panel.webview.postMessage({
+									command: 'getGroupUsersResult',
+									success: false,
+									error: error.message
+								});
+								return;
+							}
+
+							// Transform the data to get only user information
+							const users = data.map((item: any) => ({
+								id: item.users.id,
+								name: item.users.name,
+								email: item.users.email,
+								role: item.users.role
+							}));
+
+							panel.webview.postMessage({
+								command: 'getGroupUsersResult',
+								success: true,
+								users: users
+							});
+						} catch (error: any) {
+							panel.webview.postMessage({
+								command: 'getGroupUsersResult',
+								success: false,
+								error: error.message
+							});
+						}
+						break;
+
+
+					///////////////////////
+
 					default:
 						vscode.window.showInformationMessage(`未识别的命令: ${message.command}`);
 						console.log(`未识别的命令: ${message.command}`);
@@ -1027,4 +1323,5 @@ function getCatWebviewContent() {
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() { }
+export function deactivate() {
+}

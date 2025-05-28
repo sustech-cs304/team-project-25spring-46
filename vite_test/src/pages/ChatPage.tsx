@@ -48,6 +48,9 @@ const ChatPage: React.FC = () => {
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [groupName, setGroupName] = useState('');
 
+  const [showGroupMembersModal, setShowGroupMembersModal] = useState(false);
+  const [groupMembers, setGroupMembers] = useState<User[]>([]);
+
   useEffect(() => {
     // 初始化加载用户 ID 和用户列表
     vscode?.postMessage({ command: 'getCurrentUserid' });
@@ -141,6 +144,12 @@ const ChatPage: React.FC = () => {
               }
             }
             setNewMessage('');
+          }
+          break;
+        case 'getGroupUsersResult':
+          if (msg.success && msg.users) {
+            setGroupMembers(msg.users); // 重用已存在的 selectedUsers 状态
+            setShowGroupMembersModal(true);
           }
           break;
 
@@ -302,6 +311,14 @@ const ChatPage: React.FC = () => {
           <>
             <div className="chat-header">
               <h3>{selectedChat.name}</h3>
+              {selectedChat.type === 'group' && (
+                <button
+                  className="view-members-button"
+                  onClick={() => vscode?.postMessage({ command: 'getGroupUsers', groupId: selectedChat.id })}
+                >
+                  查看群成员
+                </button>
+              )}
             </div>
             <div className="messages">
               {selectedChat.messages?.map((message, index) => (
@@ -371,6 +388,25 @@ const ChatPage: React.FC = () => {
           {modalType === 'friend' ? 'Add Friend' : 'Create Group'}
         </button>
       </Modal>
+
+
+      <Modal
+        isOpen={showGroupMembersModal}
+        onRequestClose={() => setShowGroupMembersModal(false)}
+        className="modal-content"
+        overlayClassName="modal-overlay"
+      >
+        <h2>群成员</h2>
+        <div className="user-list">
+          {groupMembers.map(user => (
+            <div key={user.id} className="user-item">
+              {user.name} ({user.email})
+            </div>
+          ))}
+        </div>
+        <button onClick={() => setShowGroupMembersModal(false)}>关闭</button>
+      </Modal>
+
     </div>
   );
 };
