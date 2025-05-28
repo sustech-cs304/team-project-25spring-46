@@ -14,7 +14,14 @@ export namespace window {
       html: '',
       onDidReceiveMessage: jest.fn()
     }
-  }));  
+  }));
+  export const createTreeView = jest.fn(() => ({
+    onDidChangeVisibility: jest.fn(),
+    onDidCollapseElement: jest.fn(),
+    onDidExpandElement: jest.fn(),
+    reveal: jest.fn(),
+    dispose: jest.fn()
+  }));
 }
 
 export namespace Uri {

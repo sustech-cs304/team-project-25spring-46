@@ -3,7 +3,14 @@
 // ====== Manual mocks must be BEFORE any imports ======
 // Mock fs.readFileSync to avoid real file I/O
 jest.mock('fs', () => ({
-  readFileSync: jest.fn().mockReturnValue('<html><head></head><body></body></html>')
+  ...jest.requireActual('fs'),
+  readFileSync: jest.fn().mockReturnValue('<html><head></head><body></body></html>'),
+  readFile: jest.fn((path, options, callback) => {
+    if (typeof options === 'function') {
+      callback = options;
+    }
+    process.nextTick(() => callback(null, Buffer.from('mock file content')));
+  }),
 }));
 // Mock database to prevent real DB connection
 jest.mock('../../src/database', () => ({
@@ -28,7 +35,15 @@ describe('extension.activate', () => {
   let callback: Function;
 
   beforeEach(() => {
-    context = { subscriptions: [], extensionPath: '/ext', extensionUri: { fsPath: '/ext' } };
+    context = { 
+      subscriptions: [], 
+      extensionPath: '/ext', 
+      extensionUri: { fsPath: '/ext' },
+      globalState: {
+        get: jest.fn().mockReturnValue(null),
+        update: jest.fn()
+      } 
+    };
     // registerCommand should return a disposable; callback is 2nd arg
     (vscode.commands.registerCommand as jest.Mock).mockImplementation((cmd, cb) => {
       callback = cb as Function;
@@ -46,7 +61,8 @@ describe('extension.activate', () => {
       'test-combine.openWebview',
       expect.any(Function)
     );
-    expect(context.subscriptions).toHaveLength(1);
+    expect(context.subscriptions).toHaveLength(2);
+    expect(context.subscriptions.some(s => typeof s.dispose === 'function')).toBe(true);
   });
 
   it('command callback calls showInformationMessage and supabase test and reads html', async () => {

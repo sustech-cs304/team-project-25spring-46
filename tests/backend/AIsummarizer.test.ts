@@ -51,9 +51,14 @@ describe('AIsummarizer', () => {
 
   it('generateAIQuiz returns parsed JSON array', async () => {
     // Adjust axios mock for quiz scenario
-    axiosMock.post.mockResolvedValue({ data: { choices: [{ message: { content: '[1,2,3]' } }] } });
-    const quiz = await generateAIQuiz('course/sub/file.pdf');
+    axiosMock.post.mockResolvedValueOnce({ 
+      data: { choices: [{ message: { content: '[1,2,3]' } }] } 
+    });
+  
+    const quizRaw = await generateAIQuiz('course/sub/file.pdf');
     expect(pdfMock).toHaveBeenCalled();
+    // 手动解析字符串
+    const quiz = typeof quizRaw === 'string' ? JSON.parse(quizRaw) : quizRaw;
     expect(Array.isArray(quiz)).toBe(true);
     expect(quiz).toEqual([1, 2, 3]);
   });
