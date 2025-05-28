@@ -4,9 +4,22 @@
  * Mock external modules before any imports to prevent side-effects
  */
 jest.mock('pdf-parse', () => jest.fn().mockResolvedValue({ text: 'parsed text' }));
-jest.mock('axios', () => ({
-  post: jest.fn().mockResolvedValue({ data: { choices: [{ message: { content: '   answer ' } }] } }),
-}));
+jest.mock('axios', () => {
+  // post: jest.fn().mockResolvedValue({ data: { choices: [{ message: { content: '   answer ' } }] } }),
+  const instance = {
+    post: jest.fn().mockResolvedValue({ 
+      data: { choices: [{ message: { content: '   answer ' } }] } 
+    }),
+    get: jest.fn()
+  };
+  return {
+    __esModule: true,
+    default: {
+      create: jest.fn(() => instance),
+      ...instance
+    }
+  };
+});
 // Mock database module to avoid real connection and side-effects
 jest.mock('../../src/database', () => ({
   __esModule: true,
@@ -51,9 +64,14 @@ describe('AIsummarizer', () => {
 
   it('generateAIQuiz returns parsed JSON array', async () => {
     // Adjust axios mock for quiz scenario
-    axiosMock.post.mockResolvedValue({ data: { choices: [{ message: { content: '[1,2,3]' } }] } });
-    const quiz = await generateAIQuiz('course/sub/file.pdf');
+    axiosMock.post.mockResolvedValueOnce({ 
+      data: { choices: [{ message: { content: '[1,2,3]' } }] } 
+    });
+  
+    const quizRaw = await generateAIQuiz('course/sub/file.pdf');
     expect(pdfMock).toHaveBeenCalled();
+    // 手动解析字符串
+    const quiz = typeof quizRaw === 'string' ? JSON.parse(quizRaw) : quizRaw;
     expect(Array.isArray(quiz)).toBe(true);
     expect(quiz).toEqual([1, 2, 3]);
   });

@@ -13,8 +13,18 @@ export namespace window {
       asWebviewUri: jest.fn(uri => ({ toString: () => `mock://${uri.fsPath}`, path: `/mock/${uri.fsPath}` })),
       html: '',
       onDidReceiveMessage: jest.fn()
-    }
-  }));  
+    },
+    onDidDispose: jest.fn(),
+    reveal: jest.fn(),
+    dispose: jest.fn(),
+  }));
+  export const createTreeView = jest.fn(() => ({
+    onDidChangeVisibility: jest.fn(),
+    onDidCollapseElement: jest.fn(),
+    onDidExpandElement: jest.fn(),
+    reveal: jest.fn(),
+    dispose: jest.fn()
+  }));
 }
 
 export namespace Uri {
