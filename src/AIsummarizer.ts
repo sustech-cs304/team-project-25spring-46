@@ -3,8 +3,6 @@ import * as fs from 'fs';
 import pdf from 'pdf-parse';
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Agent as HttpsAgent } from 'https';
-import pool from './database';
-import path from 'path';
 import apiKey from './apikey';
 import { getFileAbsolutePath } from './courseService';
 const ENDPOINT = 'https://sg.uiuiapi.com/v1/chat/completions';
