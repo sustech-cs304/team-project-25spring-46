@@ -425,6 +425,38 @@ export function activate(context: vscode.ExtensionContext) {
 							});
 						}
 						break;
+				case 'getAvailableEnvironments':
+                    try {
+                        // 这里可以使用 which python、conda env list 等命令获取环境列表
+                        // 简单示例：
+                        exec('conda env list', (error, stdout, stderr) => {
+                            if (error) {
+                                panel?.webview.postMessage({ 
+                                  command: 'availableEnvironments', 
+                                  environments: ['默认环境'] 
+                                });
+                                return;
+                            }
+                            
+                            // 解析 conda 环境列表
+                            const envs = stdout
+                                .split('\n')
+                                .filter(line => line.trim() && !line.startsWith('#'))
+                                .map(line => line.split(/\s+/)[0].trim())
+                                .filter(env => env);
+                            
+                            panel?.webview.postMessage({ 
+                                command: 'availableEnvironments', 
+                                environments: envs.length ? envs : ['默认环境'] 
+                            });
+                        });
+                    } catch (error: any) {
+                        panel?.webview.postMessage({ 
+                            command: 'availableEnvironments', 
+                            environments: ['默认环境'] 
+                        });
+                    }
+                    break;
 				case 'getCourseFiles':
 					try {
 						const files = await getCourseSubfolderFiles(message.courseName);

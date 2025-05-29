@@ -64,16 +64,17 @@ def parse_pdf(pdf_path, file_name, output_dir):
     doc = fitz.open(file_path)
     for page in doc:
         width, height = page.rect.width, page.rect.height
-        width, height = page.rect.width, page.rect.height
         text = page.get_text()
         page_id += 1
         
         # 处理页面文本中的代码
-        iscode, text_code, lang = checkcode(text)
+        iscode, origin_text_code, text_code, lang = checkcode(text)
         if iscode:
             count += 1
             num = 0
-            for line in text_code:
+            for i in range(0,len(text_code)):
+                line = text_code[i]
+                origin_text = origin_text_code[i]
                 out_file = output_dir + "/" + file_name + '_' + "Page_" + str(page_id) + "_" + str(num) + Language_to_suffix[lang]
                 print(out_file)
                 # 应用语法修正
@@ -83,17 +84,16 @@ def parse_pdf(pdf_path, file_name, output_dir):
                 num += 1
                 
                 # 使用原始代码进行位置查找（因为修正后的代码可能与PDF中的不完全匹配）
-                rectan = page.search_for(line)
-                if rectan:
-                    rect = rectan[0]
-                    json_code_block.append({
-                        "type": "code",
-                        "page": page_id,
-                        "position": [rect.x0 / width, rect.y0 / height, (rect.x1 - rect.x0) / width, (rect.y1 - rect.y0) / height],
-                        "path": out_file,
-                        "language": lang,
-                        "code": line  # 保存修正后的代码
-                    })
+                rectan = page.search_for(origin_text)
+                rect = merge_rectangles(rectan)
+                json_code_block.append({
+                    "type": "code",
+                    "page": page_id,
+                    "position": [rect.x0 / width, rect.y0 / height, (rect.x1 - rect.x0) / width, (rect.y1 - rect.y0) / height],
+                    "path": out_file,
+                    "language": lang,
+                    "code": line  # 保存修正后的代码
+                })
         
         # 图像代码处理部分
         img_num = 0
@@ -113,7 +113,7 @@ def parse_pdf(pdf_path, file_name, output_dir):
             img_text = image_to_text(img_pil)
             
             # 检查提取的文本是否包含代码
-            img_iscode, img_code_blocks, img_lang = checkcode(img_text)
+            img_iscode, origin_img_code_blocks, img_code_blocks, img_lang = checkcode(img_text)
             
             if img_iscode and img_code_blocks:
                 for block_idx, block in enumerate(img_code_blocks):

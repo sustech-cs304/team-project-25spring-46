@@ -16,9 +16,9 @@ const PageBoundCodeBlocks: React.FC<PageBoundCodeBlocksProps> = ({ codeBlocks, p
   
   // 添加调试输出以验证是否有代码块
   useEffect(() => {
-    if (pageCodeBlocks.length > 0) {
-      console.log(`页码 ${page} 有 ${pageCodeBlocks.length} 个代码块:`, pageCodeBlocks);
-    }
+    // if (pageCodeBlocks.length > 0) {
+    //   console.log(`页码 ${page} 有 ${pageCodeBlocks.length} 个代码块:`, pageCodeBlocks);
+    // }
   }, [page, pageCodeBlocks]);
   
   // 如果没有当前页面的代码块或者没有页面度量，则不渲染
