@@ -654,14 +654,24 @@ interface Project {
    ```
 
 ## 部署指南
+### 使用的部署技术和方式：
 
-1. 构建前端
-   ```bash
-   cd vite_test
-   npm run build
-   ```
+由于本项目为 **Visual Studio Code 插件**，不适用于传统的 Web 服务或后端系统的容器化部署。我们使用如下现代工具和流程完成插件部署：
 
-2. 构建扩展
-   ```bash
-   npm run compile
-   ```
+- **VSCE (Visual Studio Code Extension CLI)**：官方推荐工具，用于将插件打包成 `.vsix` 文件。
+- **GitHub**：项目托管在 GitHub 上，便于团队协作和版本管理。
+- **Visual Studio Code Marketplace**：支持将插件发布至官方插件市场。
+- **命令行安装**：也支持用户通过 `.vsix` 文件手动安装插件，适用于本地部署或调试。
+
+### 部署脚本示例：
+
+```bash
+npm install -g @vscode/vsce
+vsce package
+```
+
+我们已成功打包并安装插件，以下为终端成功打包
+
+```
+Created: test-combine-0.0.1.vsix
+```
