@@ -1,3 +1,15 @@
-/out
+node_modules/
+out/
+vite_test/node_modules
+__pycache__
+src/apikey.ts
 /dist
-/node_modules
+/.idea/
+/node_modules/
+/vite_test/dist/
+design-46.md
+Design-46.md
+src/database.ts
+src/python_env.ts
+/vite_test/node_modules
+/.history
