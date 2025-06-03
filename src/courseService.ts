@@ -145,6 +145,7 @@ export async function getFileDetails(fullFilePath: string) {
  * 获取文件系统绝对路径
  */
 export async function getFileAbsolutePath(fullFilePath: string): Promise<string> {
+  console.log('now getting absolute path for:', fullFilePath);
   const [courseName, subfolder, ...rest] = fullFilePath.split('/');
   const filename = rest.join('/');
 

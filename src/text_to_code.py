@@ -732,6 +732,13 @@ def fix_python_code(code):
 
 if __name__ == '__main__':
     import sys
-    code = sys.stdin.read()
-    iscode, origin_blocks, blocks, lang = checkcode(code)
-    print(lang)
+    if len(sys.argv) >= 3 and sys.argv[1] == 'checkcode':
+        text = sys.argv[2]
+        iscode, origin_blocks, blocks, lang = checkcode(text)
+        print(f'iscode={iscode}, lang={lang}')
+        if blocks:
+            print('blocks:', blocks)
+        sys.exit(0)
+    else:
+        print('Usage: python text_to_code.py checkcode "code string"')
+        sys.exit(1)

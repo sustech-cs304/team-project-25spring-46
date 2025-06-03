@@ -6,7 +6,6 @@ import HomePage from './pages/HomePage';
 import CoursePage from './pages/CoursePage';
 import CalendarPage from './pages/CalendarPage';
 import FilePage from './pages/FilePage';
-import DemoPage from './pages/DemoPage';
 import DisplayPage from './pages/DisplayPage';
 import ChatPage from "./pages/ChatPage";
 import CodeEditorPage from './pages/CodeEditorPage';
@@ -123,8 +122,6 @@ export default function App() {
         );
       case 'CalendarPage':
         return <CalendarPage />;
-      case 'DemoPage':
-        return <DemoPage />;
       case "ChatPage": return <ChatPage />;
       case 'CodeEditorPage': return <CodeEditorPage />
       default:            return <HomePage onCourseClick={handleCourseClick} />;

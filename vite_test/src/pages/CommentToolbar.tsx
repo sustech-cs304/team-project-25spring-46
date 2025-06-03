@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 export type CommentMode = 'none' | 'text' | 'highlight' | 'underline';
 
 // 简化 position 类型，统一使用坐标系统
-interface CommentPosition {
+export interface CommentPosition {
   type: CommentMode;
   x1: number;
   y1: number;
@@ -72,7 +72,7 @@ const CommentToolbar: React.FC<CommentToolbarProps> = ({ onModeChange, currentMo
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed bottom-4 right-4 z-[1000]">
         <div className={`flex flex-col gap-2 transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'} mb-3`}>
           <button
             className={`p-2 rounded-full shadow-lg ${currentMode === 'text' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'}`}
@@ -105,7 +105,7 @@ const CommentToolbar: React.FC<CommentToolbarProps> = ({ onModeChange, currentMo
       </div>
 
       {showDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1001]">
           <div className="bg-white p-4 rounded-lg shadow-xl w-96">
             <h3 className="text-lg font-semibold mb-4">添加评论</h3>
             <textarea

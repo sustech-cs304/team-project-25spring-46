@@ -37,7 +37,7 @@ export default function CodeEditorPage() {
     setIsRunning(true);
     setOutput('正在运行...');
     vscode?.postMessage({
-      command: 'runCode',
+      command: 'runCodeBlock',
       code,
       language,
       environment: selectedEnv
@@ -75,6 +75,7 @@ export default function CodeEditorPage() {
           onChange={handleLanguageChange}
           className="border p-2 rounded"
         >
+          <option value="">选择语言</option>
           <option value="Python">Python</option>
           <option value="C">C</option>
           <option value="C++">C++</option>

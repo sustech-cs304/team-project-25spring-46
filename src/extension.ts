@@ -17,7 +17,7 @@ import { generateAISummary, generateAIQuiz } from './AIsummarizer';
 import { getProjects } from './projectService';
 import { addComment, deleteCommentById, getAllComments } from './commentService';
 let panel: vscode.WebviewPanel | undefined;
-import { defaultEnv, runPythonScript, runPythonCode, CondaEnv } from './python_env';
+import { CondaEnv } from './python_env';
 
 export let currentUserId: number | null = null;
 // This method is called when your extension is activated
@@ -64,7 +64,7 @@ export function activate(context: vscode.ExtensionContext) {
         });
 		const webview = panel.webview;
 		const cspSource = webview.cspSource;
-		const dailyworkEnv = new CondaEnv('conda', 'dailywork');
+		const dailyworkEnv = new CondaEnv('conda', 'base');
 		// 用 asWebviewUri 生成两个资源的可访问 URI
 		const demoPdfUri = webview.asWebviewUri(
 			vscode.Uri.file(path.join(context.extensionPath, 'dist', 'assets', 'sample.pdf'))
@@ -349,13 +349,13 @@ export function activate(context: vscode.ExtensionContext) {
 							} = message.data;
 
 							const updates: any = {};
-							if (title !== undefined) updates.title = title;
-							if (details !== undefined) updates.details = details;
-							if (due_date !== undefined) updates.due_date = due_date;
-							if (status !== undefined) updates.status = status;
-							if (priority !== undefined) updates.priority = priority;
-							if (group_id !== undefined) updates.group_id = group_id;
-							if (completion !== undefined) updates.completion = completion;
+							if (title !== undefined) {updates.title = title;}
+							if (details !== undefined) {updates.details = details;}
+							if (due_date !== undefined) {updates.due_date = due_date;}
+							if (status !== undefined) {updates.status = status;}
+							if (priority !== undefined) {updates.priority = priority;}
+							if (group_id !== undefined) {updates.group_id = group_id;}
+							if (completion !== undefined) {updates.completion = completion;}
 
 							const { data, error } = await supabase
 								.from('tasks')
@@ -425,38 +425,137 @@ export function activate(context: vscode.ExtensionContext) {
 							});
 						}
 						break;
+				case 'getAvailableCompilers':
+					try {
+						const { language } = message;
+						let command = '';
+						
+						switch(language) {
+							case 'Python':
+								command = 'conda env list';
+								exec(command, (error, stdout) => {
+									if (error) {
+										panel?.webview.postMessage({ 
+											command: 'availableCompilers', 
+											language,
+											compilers: ['默认环境'],
+											hasCompiler: true
+										});
+										return;
+									}
+									
+									// 解析 conda 环境列表
+									const envs = stdout
+										.split('\n')
+										.filter(line => line.trim() && !line.startsWith('#'))
+										.map(line => line.split(/\s+/)[0].trim())
+										.filter(env => env);
+									
+									panel?.webview.postMessage({ 
+										command: 'availableCompilers', 
+										language,
+										compilers: envs.length ? envs : ['默认环境'],
+										hasCompiler: true
+									});
+								});
+								break;
+								
+							case 'C':
+								// 检查 gcc 是否可用
+								exec('gcc --version', (error) => {
+									panel?.webview.postMessage({ 
+										command: 'availableCompilers', 
+										language,
+										compilers: ['gcc'],
+										hasCompiler: !error
+									});
+									if (error) {
+										vscode.window.showWarningMessage('未检测到 gcc 编译器，C 语言代码可能无法正常运行。');
+									}
+								});
+								break;
+								
+							case 'C++':
+								// 检查 g++ 是否可用
+								exec('g++ --version', (error) => {
+									panel?.webview.postMessage({ 
+										command: 'availableCompilers', 
+										language,
+										compilers: ['g++'],
+										hasCompiler: !error
+									});
+									if (error) {
+										vscode.window.showWarningMessage('未检测到 g++ 编译器，C++ 语言代码可能无法正常运行。');
+									}
+								});
+								break;
+								
+							case 'Java':
+								// 检查 javac 是否可用
+								exec('javac -version', (error) => {
+									panel?.webview.postMessage({ 
+										command: 'availableCompilers', 
+										language,
+										compilers: ['javac'],
+										hasCompiler: !error
+									});
+									if (error) {
+										vscode.window.showWarningMessage('未检测到 javac 编译器，Java 代码可能无法正常运行。');
+									}
+								});
+								break;
+								
+							default:
+								panel?.webview.postMessage({ 
+									command: 'availableCompilers', 
+									language,
+									compilers: [],
+									hasCompiler: false
+								});
+						}
+					} catch (error: any) {
+						panel?.webview.postMessage({ 
+							command: 'availableCompilers',
+							language: message.language,
+							compilers: [],
+							hasCompiler: false,
+							error: error.message
+						});
+					}
+					break;
 				case 'getAvailableEnvironments':
-                    try {
-                        // 这里可以使用 which python、conda env list 等命令获取环境列表
-                        // 简单示例：
-                        exec('conda env list', (error, stdout, stderr) => {
-                            if (error) {
-                                panel?.webview.postMessage({ 
-                                  command: 'availableEnvironments', 
-                                  environments: ['默认环境'] 
-                                });
-                                return;
-                            }
-                            
-                            // 解析 conda 环境列表
-                            const envs = stdout
-                                .split('\n')
-                                .filter(line => line.trim() && !line.startsWith('#'))
-                                .map(line => line.split(/\s+/)[0].trim())
-                                .filter(env => env);
-                            
-                            panel?.webview.postMessage({ 
-                                command: 'availableEnvironments', 
-                                environments: envs.length ? envs : ['默认环境'] 
-                            });
-                        });
-                    } catch (error: any) {
-                        panel?.webview.postMessage({ 
-                            command: 'availableEnvironments', 
-                            environments: ['默认环境'] 
-                        });
-                    }
-                    break;
+					try {
+						// 这里可以使用 which python、conda env list 等命令获取环境列表
+						// 简单示例：
+						console.log("now getting available environments...");
+						exec('conda env list', (error, stdout) => {
+							if (error) {
+								panel?.webview.postMessage({ 
+								  command: 'availableEnvironments', 
+								  environments: ['默认环境'] 
+								});
+								return;
+							}
+							
+							// 解析 conda 环境列表
+							const envs = stdout
+								.split('\n')
+								.filter(line => line.trim() && !line.startsWith('#'))
+								.map(line => line.split(/\s+/)[0].trim())
+								.filter(env => env);
+							console.log("Available environments:", envs);
+							panel?.webview.postMessage({ 
+								command: 'availableEnvironments', 
+								environments: envs.length ? envs : ['默认环境'] 
+							});
+						});
+					} catch (error: any) {
+						panel?.webview.postMessage({ 
+							command: 'availableEnvironments', 
+							environments: ['默认环境'] 
+						});
+					}
+					break;
 				case 'getCourseFiles':
 					try {
 						const files = await getCourseSubfolderFiles(message.courseName);
@@ -486,16 +585,38 @@ export function activate(context: vscode.ExtensionContext) {
 						error: error || String(error),
 						});
 					}
+				break;
+				case 'deleteComments':
+					try {
+						console.log('Start to delete Comment ', message.id);
+						const commentIdStr = message.id;
+						if (!commentIdStr) {
+							panel?.webview.postMessage({ command: 'deleteCommentsError', error: '未提供所需删除的评论 ID' });
+							return;
+						}
+						const commentId = Number(commentIdStr); // 将 string 转为 number
+						if (isNaN(commentId)) {
+							panel?.webview.postMessage({ command: 'deleteCommentsError', id: commentIdStr, error: '评论 ID 不是有效的数字' });
+							return;
+						}
+						await deleteCommentById(commentId);
+						console.log('Successfully delete the comment');
+						panel?.webview.postMessage({ command: 'deleteCommentsSuccess', id: commentIdStr });
+					} catch (error: any) {
+						panel?.webview.postMessage({ command: 'deleteCommentsError', id: message.id, error: error.message });
+					}
+					break;
 				case 'runCodeRecognition':
 				try {
 					const parts = message.filePath.split("/");
 					const courseName = parts[0];
 					const subfolder = parts[1];
 					const filename = parts.slice(2).join("/");
-					const res = await pool.query("SELECT folder_path FROM courses WHERE name = $1", [courseName]);
-					console.log("数据库返回结果:", res.rows);
-					const coursePath = res.rows[0].folder_path;
-					const absolutePath = path.join(coursePath, subfolder, filename);
+					// const res = await pool.query("SELECT folder_path FROM courses WHERE name = $1", [courseName]);
+					// console.log("数据库返回结果:", res.rows);
+					// const coursePath = res.rows[0].folder_path;
+					// const absolutePath = path.join(coursePath, subfolder, filename);
+					const absolutePath = await getFileAbsolutePath(message.filePath);
 					const scriptPath = path.join(context.extensionPath, 'src', 'pdf_test.py');
 					const outPath = path.join(context.extensionPath, 'cr_out');
 					// const outPath = "E:/test";
@@ -567,180 +688,179 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 				break;
 				case 'openFile': {
-				  try {
-					const filePath = message.filePath;
-					
-					console.log(`打开文件: ${filePath}`);
-					vscode.window.showInformationMessage(`打开 PDF 文件: ${filePath}`);
-					
-					// 尝试获取 PDF 的绝对路径
-					const absolutePath = await getFileAbsolutePath(filePath);
-					const pdfPath = vscode.Uri.file(absolutePath);
-					const pdfUri = panel?.webview.asWebviewUri(pdfPath);
-					panel?.webview.postMessage({ command: 'PdfPath', path: pdfUri?.toString() });
-					
-					// 检查 JSON 文件是否存在
-					const jsonFileName = path.parse(filePath).name + "_code_block.json";
-					const jsonFilePath = path.join(context.extensionPath, 'cr_out', jsonFileName);
-					
-					console.log(`检查JSON文件路径: ${jsonFilePath}`);
-					
-					if (fs.existsSync(jsonFilePath)) {
-					  try {
-						const jsonContent = fs.readFileSync(jsonFilePath, 'utf-8');
-						// 输出 JSON 文件内容到扩展终端
-						console.log(`读取到 JSON 文件内容长度: ${jsonContent.length}`);
-						console.log(`JSON内容片段: ${jsonContent.substring(0, 200)}...`);
-						
-						// 确保JSON格式正确
-						const parsedJson = JSON.parse(jsonContent);
-						console.log(`解析后的JSON对象包含 ${parsedJson.length} 个代码块`);
-						
-						// 将读取到的代码块 JSON 数据发送到 Webview
-						panel?.webview.postMessage({
-						  command: 'pdfCodeBlocks',
-						  data: jsonContent
-						});
-						
-						console.log('已发送pdfCodeBlocks消息到前端');
-					  } catch (err) {
-						// 安全地获取错误信息
-						const errorMessage = err instanceof Error ? err.message : String(err);
-						console.error(`读取或解析JSON文件失败:`, err);
-						panel?.webview.postMessage({ 
-						  command: 'error', 
-						  error: `读取代码块数据失败: ${errorMessage}` 
-						});
-					  }
-					} else {
-					  console.log(`没有找到代码块 JSON 文件: ${jsonFilePath}`);
-					  // 可能需要触发代码识别来生成JSON
-					  if (message.needCodeRecognition) {
-						console.log('文件打开时自动触发代码识别');
-						// 自动触发代码识别 - 将相关代码从runCodeRecognition命令处理程序复制到这里
-						// ...代码识别逻辑...
-					  }
-					}
-				  } catch (err) {
-					// 安全地获取错误信息
-					const errorMessage = err instanceof Error ? err.message : String(err);
-					console.error('打开文件失败:', err);
-					panel?.webview.postMessage({ command: 'error', error: errorMessage });
-					vscode.window.showErrorMessage(`打开文件失败: ${errorMessage}`);
-				  }
-				  break;
-				}
-				case 'runCodeBlock':
-				try {
-					const { code, language } = message;
-					// 这里只以 python 为例，其他语言可自行扩展
-					if (language === 'Python') {
-						const tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.py');
-						fs.writeFileSync(tmpPath, code, 'utf-8');
-						exec(`python "${tmpPath}"`, (error, stdout, stderr) => {
-							if (error) {
-								console.log('发送 runCodeResult:', { result: stderr || error.message, blockIdx: message.blockIdx });
-								panel?.webview.postMessage({ 
-									command: 'runCodeResult', 
-									result: stderr || error.message, 
-									blockIdx: message.blockIdx 
-								});
-							} else {
-								console.log('发送 runCodeResult:', { result: stdout, blockIdx: message.blockIdx });
-								panel?.webview.postMessage({ 
-									command: 'runCodeResult', 
-									result: stdout, 
-									blockIdx: message.blockIdx 
-								});
-							}
-						});
-					}
-					else if (language === 'C') {
-						const tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.c');
-						fs.writeFileSync(tmpPath, code, 'utf-8');
-						exec(`gcc "${tmpPath}"\n ./a.exe`, (error, stdout, stderr) => {
-							if (error) {
-								console.log('发送 runCodeResult:', { result: stderr || error.message, blockIdx: message.blockIdx });
-								panel?.webview.postMessage({ 
-									command: 'runCodeResult', 
-									result: stderr || error.message, 
-									blockIdx: message.blockIdx 
-								});
-							} else {
-								console.log('发送 runCodeResult:', { result: stdout, blockIdx: message.blockIdx });
-								panel?.webview.postMessage({ 
-									command: 'runCodeResult', 
-									result: stdout, 
-									blockIdx: message.blockIdx 
-								});
-							}
-						});
-					}
-					else if (language === 'C++') {
-						const tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.cpp');
-						fs.writeFileSync(tmpPath, code, 'utf-8');
-						exec(`g++ "${tmpPath}"\n ./a.exe`, (error, stdout, stderr) => {
-							if (error) {
-								console.log('发送 runCodeResult:', { result: stderr || error.message, blockIdx: message.blockIdx });
-								panel?.webview.postMessage({ 
-									command: 'runCodeResult', 
-									result: stderr || error.message, 
-									blockIdx: message.blockIdx 
-								});
-							}
-							else {
-								console.log('发送 runCodeResult:', { result: stdout, blockIdx: message.blockIdx });
-								panel?.webview.postMessage({ 
-									command: 'runCodeResult', 
-									result: stdout, 
-									blockIdx: message.blockIdx 
-								});
-							}
-						});
-					}
-					else if (language === 'Java') {
-						const match = code.match(/public\s+class\s+([A-Za-z_][A-Za-z0-9_]*)/);
-						let tmpPath = path.join(context.extensionPath, 'cr_out');
-    					if (match && match[1]) {
-							tmpPath = path.join(tmpPath, match[1], '.java');
+					try {
+					  const filePath = message.filePath;
+					  
+					  console.log(`打开文件: ${filePath}`);
+					  vscode.window.showInformationMessage(`打开 PDF 文件: ${filePath}`);
+					  
+					  // 尝试获取 PDF 的绝对路径
+					  const absolutePath = await getFileAbsolutePath(filePath);
+					  const pdfPath = vscode.Uri.file(absolutePath);
+					  const pdfUri = panel?.webview.asWebviewUri(pdfPath);
+					  panel?.webview.postMessage({ command: 'PdfPath', path: pdfUri?.toString() });
+					  
+					  // 检查 JSON 文件是否存在
+					  const jsonFileName = path.parse(filePath).name + "_code_block.json";
+					  const jsonFilePath = path.join(context.extensionPath, 'cr_out', jsonFileName);
+					  
+					  console.log(`检查JSON文件路径: ${jsonFilePath}`);
+					  
+					  if (fs.existsSync(jsonFilePath)) {
+						try {
+						  const jsonContent = fs.readFileSync(jsonFilePath, 'utf-8');
+						  // 输出 JSON 文件内容到扩展终端
+						  console.log(`读取到 JSON 文件内容长度: ${jsonContent.length}`);
+						  console.log(`JSON内容片段: ${jsonContent.substring(0, 200)}...`);
+						  
+						  // 确保JSON格式正确
+						  const parsedJson = JSON.parse(jsonContent);
+						  console.log(`解析后的JSON对象包含 ${parsedJson.length} 个代码块`);
+						  
+						  // 将读取到的代码块 JSON 数据发送到 Webview
+						  panel?.webview.postMessage({
+							command: 'pdfCodeBlocks',
+							data: jsonContent
+						  });
+						  
+						  console.log('已发送pdfCodeBlocks消息到前端');
+						} catch (err) {
+						  // 安全地获取错误信息
+						  const errorMessage = err instanceof Error ? err.message : String(err);
+						  console.error(`读取或解析JSON文件失败:`, err);
+						  panel?.webview.postMessage({ 
+							command: 'error', 
+							error: `读取代码块数据失败: ${errorMessage}` 
+						  });
 						}
-						fs.writeFileSync(tmpPath, code, 'utf-8');
-						exec(`javac "${tmpPath}"\n java -cp "${path.dirname(tmpPath)}" "${path.basename(tmpPath, '.java')}"`, (error, stdout, stderr) => {
+					  } else {
+						console.log(`没有找到代码块 JSON 文件: ${jsonFilePath}`);
+						// 可能需要触发代码识别来生成JSON
+						if (message.needCodeRecognition) {
+						  console.log('文件打开时自动触发代码识别');
+						  // 自动触发代码识别 - 将相关代码从runCodeRecognition命令处理程序复制到这里
+						  // ...代码识别逻辑...
+						}
+					  }
+					} catch (err) {
+					  // 安全地获取错误信息
+					  const errorMessage = err instanceof Error ? err.message : String(err);
+					  console.error('打开文件失败:', err);
+					  panel?.webview.postMessage({ command: 'error', error: errorMessage });
+					  vscode.window.showErrorMessage(`打开文件失败: ${errorMessage}`);
+					}
+					break;
+				  }
+				case 'runCodeBlock':
+					try {
+						const { code, language, compiler } = message;
+						let command = '';
+						let tmpPath = '';
+						
+						// 首先检查编译器是否存在
+						const checkCompiler = () => {
+							return new Promise<boolean>((resolve) => {
+								let checkCmd = '';
+								
+								switch (language) {
+									case 'Python':
+										if (compiler && compiler !== '默认环境') {
+											checkCmd = `conda env list | findstr "${compiler}"`;
+										} else {
+											checkCmd = 'python --version';
+										}
+										break;
+									case 'C':
+										checkCmd = 'gcc --version';
+										break;
+									case 'C++':
+										checkCmd = 'g++ --version';
+										break;
+									case 'Java':
+										checkCmd = 'javac -version';
+										break;
+									default:
+										resolve(false);
+										return;
+								}
+								
+								exec(checkCmd, (error) => {
+									resolve(!error);
+								});
+							});
+						};
+						
+						const compilerExists = await checkCompiler();
+						
+						if (!compilerExists) {
+							console.log('发送 runCodeResult:', { result: `错误: 未检测到${language}所需的编译器/解释器，请安装相应的开发环境。`, blockIdx: message.blockIdx });
+							panel?.webview.postMessage({ 
+								command: 'runCodeResult', 
+								result: `错误: 未检测到${language}所需的编译器/解释器，请安装相应的开发环境。`,
+								blockIdx: message.blockIdx
+							});
+							vscode.window.showErrorMessage(`未检测到${language}所需的编译器/解释器，请安装相应的开发环境。`);
+							return;
+						}
+						
+						// 编译器存在，继续执行代码
+						// 保持原有的运行逻辑...
+						if (language === 'Python') {
+							tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.py');
+							fs.writeFileSync(tmpPath, code, 'utf-8');
+							
+							// 如果有指定环境，使用 conda 运行
+							if (compiler && compiler !== '默认环境') {
+								command = `conda run -n ${compiler} python "${tmpPath}"`;
+							} else {
+								command = `python "${tmpPath}"`;
+							}
+						} else if (language === 'C') {
+							tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.c');
+							fs.writeFileSync(tmpPath, code, 'utf-8');
+							command = `gcc "${tmpPath}" -o "${tmpPath}.exe" && "${tmpPath}.exe"`;
+						} else if (language === 'C++') {
+							tmpPath = path.join(context.extensionPath, 'cr_out', 'tmp_run.cpp');
+							fs.writeFileSync(tmpPath, code, 'utf-8');
+							command = `g++ "${tmpPath}" -o "${tmpPath}.exe" && "${tmpPath}.exe"`;
+						} else if (language === 'Java') {
+							// 提取类名
+							const match = code.match(/public\s+class\s+([A-Za-z_][A-Za-z0-9_]*)/);
+							const className = match && match[1] ? match[1] : 'Main';
+							
+							tmpPath = path.join(context.extensionPath, 'cr_out', `${className}.java`);
+							fs.writeFileSync(tmpPath, code, 'utf-8');
+							command = `javac "${tmpPath}" && java -cp "${path.dirname(tmpPath)}" ${className}`;
+						}
+						
+						// 运行命令
+						exec(command, (error, stdout, stderr) => {
 							if (error) {
 								console.log('发送 runCodeResult:', { result: stderr || error.message, blockIdx: message.blockIdx });
 								panel?.webview.postMessage({ 
 									command: 'runCodeResult', 
-									result: stderr || error.message, 
-									blockIdx: message.blockIdx 
+									result: stderr || error.message,
+									blockIdx: message.blockIdx
 								});
-							}
-							else {
+							} else {
 								console.log('发送 runCodeResult:', { result: stdout, blockIdx: message.blockIdx });
 								panel?.webview.postMessage({ 
 									command: 'runCodeResult', 
-									result: stdout, 
-									blockIdx: message.blockIdx 
+									result: stdout,
+									blockIdx: message.blockIdx
 								});
 							}
 						});
-					}
-					else {
-						console.log('发送 runCodeResult:', { result: '暂不支持该语言运行', blockIdx: message.blockIdx });
+					} catch (error: any) {
+						console.log('发送 runCodeResult:', { result: `错误: ${error.message}`, blockIdx: message.blockIdx });
 						panel?.webview.postMessage({ 
 							command: 'runCodeResult', 
-							result: '暂不支持该语言运行', 
-							blockIdx: message.blockIdx 
+							result: `错误: ${error.message}`,
+							blockIdx: message.blockIdx
 						});
 					}
-				} catch (err: any) {
-					console.log('发送 runCodeResult:', { result: err.message, blockIdx: message.blockIdx });
-					panel?.webview.postMessage({ 
-						command: 'runCodeResult', 
-						result: err.message, 
-						blockIdx: message.blockIdx 
-					});
-				}
-				break;
+					break;
+				
 				case 'generateSummary':
 					try {
 						const summary = await generateAISummary(message.filePath);
@@ -1055,7 +1175,7 @@ export function activate(context: vscode.ExtensionContext) {
                                 type: 'friend'
                             }));
 
-                            console.log('friends: ', friends)
+                            console.log('friends: ', friends);
                             panel?.webview.postMessage({
                                 command: 'getFriendsListResult',
                                 success: true,
@@ -1177,7 +1297,7 @@ export function activate(context: vscode.ExtensionContext) {
                                 groupOwner: item.groups.owner
                             }));
 
-                            console.log('groups: ', groups)
+                            console.log('groups: ', groups);
                             panel?.webview.postMessage({
                                 command: 'getGroupListResult',
                                 success: true,
@@ -1200,7 +1320,7 @@ export function activate(context: vscode.ExtensionContext) {
                                     .filter((id: number) => !isNaN(id))  // 移除无效的 NaN
                             ));
 
-                            console.log(userIds)
+                            console.log(userIds);
                             // 参数校验
                             if (!name || !Array.isArray(userIds) || userIds.length < 2 || !ownerId) {
                                 panel?.webview.postMessage({
@@ -1219,7 +1339,7 @@ export function activate(context: vscode.ExtensionContext) {
                                 .single();
 
                             if (insertGroupError) {
-                                console.log('create group fail insert group!!!!')
+                                console.log('create group fail insert group!!!!');
 
                                 panel?.webview.postMessage({
                                     command: 'createGroupResult',
@@ -1241,8 +1361,8 @@ export function activate(context: vscode.ExtensionContext) {
                                 .upsert(memberRows, {onConflict: 'group_id,member_id'});
 
                             if (insertMembersError) {
-                                console.log(memberRows)
-                                console.log('create group fail insert member !!!!')
+                                console.log(memberRows);
+                                console.log('create group fail insert member !!!!');
                                 panel?.webview.postMessage({
                                     command: 'createGroupResult',
                                     success: false,
@@ -1258,7 +1378,7 @@ export function activate(context: vscode.ExtensionContext) {
                                 .in('id', userIds);
 
                             if (userQueryError) {
-                                console.log('create group fail query member !!!!')
+                                console.log('create group fail query member !!!!');
                                 panel?.webview.postMessage({
                                     command: 'createGroupResult',
                                     success: false,
@@ -1267,7 +1387,7 @@ export function activate(context: vscode.ExtensionContext) {
                                 return;
                             }
 
-                            console.log('create group success!!!!')
+                            console.log('create group success!!!!');
                             panel?.webview.postMessage({
                                 command: 'createGroupResult',
                                 success: true,
