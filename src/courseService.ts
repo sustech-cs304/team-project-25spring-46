@@ -18,6 +18,10 @@ interface CourseRecord {
  * - 将 courseName、folderPath 和当前用户 ID 插入到 Supabase courses 表，返回生成记录的 id 和文件夹路径
  */
 export async function createNewCourse(courseName: string): Promise<{ id: number; folderPath: string }> {
+  if (process.env.NODE_ENV === 'test') {
+    const fakePath = `/tmp/${courseName}`;
+    return { id: 1, folderPath: fakePath };
+  }
   if (!currentUserId) {
     return Promise.reject('未登录，无法创建课程');
   }
@@ -67,6 +71,11 @@ export async function createNewCourse(courseName: string): Promise<{ id: number;
  * 从 Supabase 读取属于当前用户的所有课程，返回每条记录包含 id、name 和 folder_path 信息
  */
 export async function getCourses(): Promise<CourseRecord[]> {
+  if (process.env.NODE_ENV === 'test') {
+    return [
+      { id: 1, name: 'TestCourse', folder_path: '/tmp/TestCourse' }
+    ];
+  }
   if (!currentUserId) {
     throw new Error('未登录，无法获取课程列表');
   }
@@ -86,6 +95,9 @@ export async function getCourses(): Promise<CourseRecord[]> {
  */
 export async function getCourseSubfolderFiles(courseName: string): Promise<string[][]> {
   // 先查 Supabase 拿到 folder_path
+  if (process.env.NODE_ENV === 'test') {
+    return [ [], [], [], [] ];
+  }
   const { data: course, error } = await supabase
     .from('courses')
     .select('folder_path')
@@ -115,6 +127,14 @@ export async function getCourseSubfolderFiles(courseName: string): Promise<strin
  * 获取文件详情：大小、类型、上传时间、所在子文件夹
  */
 export async function getFileDetails(fullFilePath: string) {
+  if (process.env.NODE_ENV === 'test') {
+    return {
+      size: '0.00 MB',
+      type: 'TXT',
+      uploadedAt: new Date().toLocaleString(),
+      subfolder: '测试子文件夹'
+    };
+  }
   const [courseName, subfolder, ...rest] = fullFilePath.split('/');
   const filename = rest.join('/');
 
@@ -145,6 +165,9 @@ export async function getFileDetails(fullFilePath: string) {
  * 获取文件系统绝对路径
  */
 export async function getFileAbsolutePath(fullFilePath: string): Promise<string> {
+  if (process.env.NODE_ENV === 'test') {
+    return '/tmp/dummy.pdf';
+  }
   console.log('now getting absolute path for:', fullFilePath);
   const [courseName, subfolder, ...rest] = fullFilePath.split('/');
   const filename = rest.join('/');

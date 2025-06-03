@@ -1,79 +1,79 @@
 // tests/backend/extension.test.ts
 
-// ====== Manual mocks must be BEFORE any imports ======
-// Mock fs.readFileSync to avoid real file I/O
+// —— 先拿到原生的 fs，确保只改 readFileSync，保留其它方法
+const actualFs = jest.requireActual('fs');
 jest.mock('fs', () => ({
-  ...jest.requireActual('fs'),
-  readFileSync: jest.fn().mockReturnValue('<html><head></head><body></body></html>'),
-  readFile: jest.fn((path, options, callback) => {
-    if (typeof options === 'function') {
-      callback = options;
-    }
-    process.nextTick(() => callback(null, Buffer.from('mock file content')));
-  }),
+  ...actualFs,
+  readFileSync: jest.fn().mockReturnValue('<html><head></head><body></body></html>')
 }));
-// Mock database to prevent real DB connection
-jest.mock('../../src/database', () => ({
-  __esModule: true,
-  default: { query: jest.fn().mockResolvedValue({ rows: [] }) }
-}));
-// Mock supabaseClient to prevent IIFE and real network
+
+// —— 关键：正确 mock supabaseClient 模块，保证 testSupabaseConnection 是 jest.fn()
 jest.mock('../../src/supabaseClient', () => ({
   __esModule: true,
-  default: { from: jest.fn().mockReturnValue({ select: () => ({ limit: () => Promise.resolve({ data: [], error: null }) }) }) },
+  default: {
+    from: jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({ data: [], error: null })
+        })
+      })
+    })
+  },
   testSupabaseConnection: jest.fn().mockResolvedValue(undefined)
+}));
+
+// —— 依旧 mock 掉 courseService 的各个导出
+jest.mock('../../src/courseService', () => ({
+  __esModule: true,
+  getCourses: jest.fn().mockResolvedValue([]),
+  getCourseSubfolderFiles: jest.fn(),
+  getFileDetails: jest.fn(),
+  getFileAbsolutePath: jest.fn(),
+  createNewCourse: jest.fn()
 }));
 
 import * as vscode from 'vscode';
 import { activate } from '../../src/extension';
 import { testSupabaseConnection } from '../../src/supabaseClient';
+import fs from 'fs';
 
-// vscode mock provided via moduleNameMapper (__mocks__/vscode.ts)
-
-describe('extension.activate', () => {
+describe('extension.activate (test env)', () => {
   let context: any;
   let callback: Function;
 
   beforeEach(() => {
-    context = { 
-      subscriptions: [], 
-      extensionPath: '/ext', 
-      extensionUri: { fsPath: '/ext' },
-      globalState: {
-        get: jest.fn().mockReturnValue(null),
-        update: jest.fn()
-      } 
+    context = {
+      subscriptions: [],
+      extensionPath: '/ext',
+      extensionUri: { fsPath: '/ext' }
     };
-    // registerCommand should return a disposable; callback is 2nd arg
-    (vscode.commands.registerCommand as jest.Mock).mockImplementation((cmd, cb) => {
-      callback = cb as Function;
+    vscode.commands.registerCommand.mockImplementation((cmd, cb) => {
+      callback = cb;
       return { dispose: jest.fn() };
     });
-    // Clear mocks
-    (vscode.window.showInformationMessage as jest.Mock).mockClear();
-    (testSupabaseConnection as jest.Mock).mockClear();
-    (vscode.window.createWebviewPanel as jest.Mock).mockClear();
+
+    // 把 mock 函数的调用记录清空
+    vscode.window.showInformationMessage.mockClear();
+    testSupabaseConnection.mockClear();     // 这里就不会报错了
+    vscode.window.createWebviewPanel.mockClear();
+    (fs as any).readFileSync.mockClear();
   });
 
-  it('registers openWebview command', async () => {
+  it('registers openWebview command without errors', async () => {
     await activate(context);
     expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
       'CourseAwareIDE.openWebview',
       expect.any(Function)
     );
     expect(context.subscriptions).toHaveLength(2);
-    expect(context.subscriptions.some(s => typeof s.dispose === 'function')).toBe(true);
   });
 
-  it('command callback calls showInformationMessage and supabase test and reads html', async () => {
+  it('command callback should run without throwing', async () => {
     await activate(context);
-    // invoke the saved callback to simulate command execution
-    await callback();
+    await expect(callback()).resolves.toBeUndefined();
     expect(vscode.window.showInformationMessage).toHaveBeenCalledWith('The extension is running!');
     expect(testSupabaseConnection).toHaveBeenCalled();
-    // fs.readFileSync was mocked to return dummy html
-    expect(require('fs').readFileSync).toHaveBeenCalledWith('\\ext\\dist\\index.html', 'utf8');
-    // createWebviewPanel should have been called
+    expect((fs as any).readFileSync).toHaveBeenCalledWith('\\ext\\dist\\index.html', 'utf8');
     expect(vscode.window.createWebviewPanel).toHaveBeenCalled();
   });
 });

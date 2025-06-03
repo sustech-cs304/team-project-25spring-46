@@ -587,7 +587,7 @@ const PageLayout: React.FC<{ filePath: string; username: string }> = ({ filePath
               onModeChange={setCurrentMode}
               onAddComment={handleCommentSubmit}
               showDialog={showDialog}
-              pendingPosition={previewPosition}
+              pendingPosition={tempPosition}
               onCancelDialog={() => {
                 setShowDialog(false);
                 setPreviewPosition(null);

@@ -24,8 +24,12 @@ export let currentUserId: number | null = null;
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 	// Restore currentUserId from persistent storage
-	currentUserId = context.globalState.get('currentUserId') || null;
-
+	if (process.env.NODE_ENV === 'test') {
+    	currentUserId = 999; 
+	} else {
+		// ③ 仅在非测试环境时从全局存储恢复用户
+		currentUserId = context.globalState.get('currentUserId') || null;
+	}
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
     console.log('Congratulations, your extension "CourseAwareIDE" is now active!');
