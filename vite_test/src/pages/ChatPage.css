@@ -55,7 +55,7 @@
   flex-direction: column;
   background-color: #fff;
   height: 100vh;
-  left:18%;
+  position: relative; /* ✅ 加上这句 */
 }
 
 .chat-header {
@@ -117,10 +117,9 @@
 }
 
 .message-input {
-  position: fixed;
-  bottom: 30%; /* 对应任务列表的高度 */
-  left: 18%; /* 对应 chat-list 的宽度 */
-  right: 0;
+  position: absolute;
+  bottom: 30%;
+  width: 100%; /* ✅ 宽度随父容器自适应 */
   display: flex;
   padding: 12px 20px;
   border-top: 1px solid #ddd;
@@ -443,10 +442,9 @@
 }
 
 .task-section {
-  position: fixed;
+  position: absolute;
   bottom: 0;
-  left: 18%; /* 对应 chat-list 的宽度 */
-  right: 0;
+  width: 100%; /* ✅ 不要用 left/right */
   height: 30%;
   background-color: #fff;
   border-top: 1px solid #ddd;
@@ -462,7 +460,7 @@
   height: 10px;
   flex-direction: column;
   gap: 10px;
-  left: 18%;
+  left: 15%;
 }
 
 .task-list::-webkit-scrollbar {
