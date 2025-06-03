@@ -4,13 +4,9 @@ import PDFViewer /*, { usePDFMetrics }*/ from './PDFViewer';
 import CommentOverlay from './CommentOverlay';
 import CommentToolbar, { CommentPosition, CommentMode } from './CommentToolbar';
 import SidePanelContainer from './SidePanelContainer';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { getVsCodeApi } from '../vscodeApi';
 import { CommentData, RawCommentInput } from '../types/annotations';
 import type { CodeBlock } from './filePageComponents/CodeRecognition';
-import { CurrentPageCodeDisplay } from './CurrentPageCodeDisplay';
-import styles from './DisplayPage.module.css';
-import { getVsCodeApi } from '../vscodeApi';
-import MonacoEditor from 'react-monaco-editor';
 
 // 定义DisplayPageProps接口
 interface DisplayPageProps {
@@ -19,12 +15,12 @@ interface DisplayPageProps {
 }
 
 // 定义从后端接收的代码块数据结构
-type CodeBlockJson = {
+interface CodeBlockJson {
   language: string;
   code: string;
   page: number;
   position?: [number, number, number, number];
-};
+}
 
 const PageLayout: React.FC<{ filePath: string; username: string }> = ({ filePath, username }) => {
   const { openPanels } = useSidePanel();
@@ -41,26 +37,33 @@ const PageLayout: React.FC<{ filePath: string; username: string }> = ({ filePath
   const vscode = getVsCodeApi();
   // const pageMetrics = usePDFMetrics();
 
-  // 添加定时刷新评论的函数
-  const refreshComments = useCallback(() => {
-    console.log('Refreshing comments...');
-    vscode?.postMessage({ command: 'getAllComments', filePath });
-  }, [filePath, vscode]);
-
-  // 只在 filePath 变化时读取一次评论和代码块
+  // 修改文件打开时的 useEffect
   useEffect(() => {
+    // 发送 openFile 命令和代码块识别命令
     vscode.postMessage({ command: 'openFile', filePath });
-    vscode.postMessage({ command: 'getAllComments', filePath });
-    vscode.postMessage({ command: 'runCodeRecognition', filePath });
-    // 清空旧数据
-    setAllBlocks([]);
-    setSelectedBlocks([]);
-    setCodeBlockError(null);
     setComments([]);
+    setRunResults({});
   }, [filePath, vscode]);
 
-  // 添加定时刷新评论的 effect
+  // 文件打开时的一次性初始化
   useEffect(() => {
+    console.log('[Init] File opened, initializing data...');
+    // 发送初始化命令
+    vscode.postMessage({ command: 'openFile', filePath });
+    
+    // 只清空评论相关数据
+    setComments([]);
+    setRunResults({});
+  }, [filePath, vscode]);
+
+  // 评论刷新
+  useEffect(() => {
+    console.log('[Comments Refresh] Setting up comments refresh...');
+    const refreshComments = () => {
+      console.log('[Comments Refresh] Refreshing comments, current code blocks:', allBlocks);
+      vscode.postMessage({ command: 'getAllComments', filePath });
+    };
+
     // 立即执行一次
     refreshComments();
 
@@ -69,66 +72,121 @@ const PageLayout: React.FC<{ filePath: string; username: string }> = ({ filePath
 
     // 清理函数
     return () => {
+      console.log('[Comments Refresh] Cleaning up refresh timer');
       clearInterval(intervalId);
     };
-  }, [refreshComments]);
+  }, [filePath, vscode, allBlocks]);
 
+  // 分离代码块消息处理
   useEffect(() => {
+    console.log('Setting up code blocks handler');
     const handler = (event: MessageEvent) => {
-      const { command, data, result, blockIdx, comments: commentList } = event.data;
-      if (command === 'pdfCodeBlocks') {
-        if (!data) {
-          setCodeBlockError('未找到对应的代码块 JSON 文件');
+      const { command, data } = event.data;
+      
+      if (command !== 'pdfCodeBlocks') return;
+      
+      console.log('[CodeBlocks Handler] Processing code blocks data:', data);
+      if (!data) {
+        console.error('[CodeBlocks Handler] No code blocks data received');
+        setCodeBlockError('未找到对应的代码块 JSON 文件');
+        setAllBlocks([]);
+        return;
+      }
+      try {
+        const rawBlocks = JSON.parse(data);
+        
+        if (!Array.isArray(rawBlocks) || rawBlocks.length === 0) {
+          console.error('[CodeBlocks Handler] Code blocks data is empty or invalid');
+          setCodeBlockError('未找到对应的代码块 JSON 文件或内容为空');
           setAllBlocks([]);
           return;
         }
-        try {
-          const rawBlocks = JSON.parse(data);
-          if (!Array.isArray(rawBlocks) || rawBlocks.length === 0) {
-            setCodeBlockError('未找到对应的代码块 JSON 文件或内容为空');
-            setAllBlocks([]);
-            return;
-          }
-          const parsedBlocks = rawBlocks.map((block: CodeBlockJson) => ({
-            language: block.language,
-            content: block.code,
-            page: block.page,
-            x: block.position?.[0] ?? 0,
-            y: block.position?.[1] ?? 0,
-            width: block.position?.[2] ?? 0,
-            height: block.position?.[3] ?? 0,
-          }));
-          setAllBlocks(parsedBlocks);
-          setCodeBlockError(null);
-        } catch {
-          setCodeBlockError('未找到对应的代码块 JSON 文件');
-          setAllBlocks([]);
-        }
-      } else if (command === 'runCodeResult') {
-        const idx = typeof blockIdx === 'number' ? blockIdx
-                  : (data && typeof blockIdx === 'number' ? blockIdx : undefined);
-        const res = result ?? (data ? data.result : undefined);
-        if (typeof idx === 'number') {
-          setRunResults(prev => ({ ...prev, [idx]: res || '' }));
-        }
-      } else if (command === 'getAllCommentsSuccess' && Array.isArray(commentList)) {
-        console.log('getAllCommentsSuccess', commentList);
-        setComments(commentList);
-      } else if (command === 'getAllCommentsError') {
-        console.log('getAllCommentsError');
-        setComments([]);
+        const parsedBlocks = rawBlocks.map((block: CodeBlockJson) => ({
+          language: block.language,
+          content: block.code,
+          page: block.page,
+          x: block.position?.[0] ?? 0,
+          y: block.position?.[1] ?? 0,
+          width: block.position?.[2] ?? 0,
+          height: block.position?.[3] ?? 0,
+        }));
+        setAllBlocks(parsedBlocks);
+        setCodeBlockError(null);
+      } catch (error) {
+        console.error('[CodeBlocks Handler] Error parsing code blocks:', error);
+        setCodeBlockError('未找到对应的代码块 JSON 文件');
+        setAllBlocks([]);
       }
     };
+
     window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [filePath, vscode]);
+    return () => {
+      console.log('Cleaning up code blocks handler');
+      window.removeEventListener('message', handler);
+    };
+  }, []);
+
+  // 分离评论和代码运行结果消息处理
+  useEffect(() => {
+    console.log('Setting up comments and run results handler');
+    const handler = (event: MessageEvent) => {
+      const { command, data, result, blockIdx, comments: commentList } = event.data;
+      let idx: number | undefined;
+      let res: string | undefined;
+      
+      switch (command) {
+        case 'getAllCommentsSuccess':
+          if (Array.isArray(commentList)) {
+            console.log('[Comments Handler] getAllCommentsSuccess', commentList);
+            setComments(commentList);
+          }
+          break;
+
+        case 'getAllCommentsError':
+          console.log('[Comments Handler] getAllCommentsError');
+          setComments([]);
+          break;
+
+        case 'runCodeResult':
+          console.log('[Run Result Handler] Processing run result');
+          idx = typeof blockIdx === 'number' ? blockIdx
+               : (data && typeof blockIdx === 'number' ? blockIdx : undefined);
+          res = result ?? (data ? data.result : undefined);
+          if (typeof idx === 'number') {
+            setRunResults(prev => {
+              const newResults = { ...prev };
+              newResults[idx as number] = res || '';
+              return newResults;
+            });
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('message', handler);
+    return () => {
+      console.log('Cleaning up comments and run results handler');
+      window.removeEventListener('message', handler);
+    };
+  }, [allBlocks]);
 
   // 代码块边框渲染组件，接收 page 参数
   const CodeBlockBorders: React.FC<{ page: number }> = ({ page }) => {
     if (codeBlockError) return null;
+
+    const pageBlocks = allBlocks.filter(block => block.page === page);
+
     return (
-      <>
-        {allBlocks.filter(block => block.page === page).map((block, idx) => (
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        pointerEvents: 'none',
+        zIndex: 30
+      }}>
+        {pageBlocks.map((block, idx) => (
           <div
             key={idx}
             style={{
@@ -147,6 +205,7 @@ const PageLayout: React.FC<{ filePath: string; username: string }> = ({ filePath
               display: 'flex',
               alignItems: 'flex-start',
               justifyContent: 'flex-start',
+              gap: 12,
               pointerEvents: 'auto',
             }}
             title={block.language}
@@ -160,9 +219,11 @@ const PageLayout: React.FC<{ filePath: string; username: string }> = ({ filePath
             </div>
           </div>
         ))}
-      </>
+      </div>
     );
   };
+
+  CodeBlockBorders.displayName = 'CodeAnnotation';
 
   const normalizeLanguage = useCallback((lang: string) => {
     if (!lang) return 'Python';
@@ -423,191 +484,131 @@ const PageLayout: React.FC<{ filePath: string; username: string }> = ({ filePath
     setPreviewPosition(newPreview);
   }, [currentMode, tempPosition]);
 
-  if (openPanels.length === 0) {
-    return (
-      <div style={{ display: 'flex', height: '100vh', position: 'relative' }}>
-        {/* 左侧代码编辑面板 */}
-        <div style={{ 
-          width: '20%', 
-          background: 'transparent', 
-          overflowY: 'auto', 
-          padding: 8,
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          zIndex: 20
-        }}>
-          {selectedBlocks.length > 0 ? (
-            selectedBlocks.map((block, idx) => (
-              <div key={idx} style={{ marginBottom: 16, position: 'relative', background: '#fff', borderRadius: 6, boxShadow: '0 1px 4px #eee', padding: 8 }}>
+  // 并列三栏布局：左侧代码编辑器，中间PDF，右侧评论面板
+  return (
+    <div style={{ display: 'flex', height: '100vh', position: 'relative' }}>
+      {/* 左侧代码编辑面板 */}
+      <div style={{ 
+        width: '20%', 
+        background: 'transparent', 
+        overflowY: 'auto', 
+        padding: 8,
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 20
+      }}>
+        {selectedBlocks.length > 0 ? (
+          selectedBlocks.map((block, idx) => (
+            <div key={idx} style={{ marginBottom: 16, position: 'relative', background: '#fff', borderRadius: 6, boxShadow: '0 1px 4px #eee', padding: 8 }}>
+              <button
+                style={{
+                  position: 'absolute',
+                  top: 6,
+                  right: 6,
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#aaa',
+                  fontSize: 16,
+                  cursor: 'pointer',
+                  zIndex: 2,
+                }}
+                title="关闭"
+                onClick={() => setSelectedBlocks(prev => prev.filter(b => b !== block))}
+              >×</button>
+              <div style={{ fontWeight: 'bold', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 12 }}>
                 <button
-                  style={{
-                    position: 'absolute',
-                    top: 6,
-                    right: 6,
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#aaa',
-                    fontSize: 16,
-                    cursor: 'pointer',
-                    zIndex: 2,
-                  }}
-                  title="关闭"
-                  onClick={() => setSelectedBlocks(prev => prev.filter(b => b !== block))}
-                >×</button>
-                <div style={{ fontWeight: 'bold', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 12 }}>
-                  <button
-                    style={{ fontSize: 12, background: '#3498db', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer', marginRight: 8 }}
-                    onClick={() => handleRunCode(block, idx)}
-                  >运行</button>
-                  <span>
-                    {block.language}
-                    <span style={{ color: '#888', fontWeight: 'normal', marginLeft: 8 }}>第{block.page}页</span>
-                  </span>
-                </div>
-                <MonacoEditor
-                  height="120"
-                  language={block.language.toLowerCase()}
-                  value={block.content}
-                  options={{ readOnly: false, minimap: { enabled: false } }}
-                />
-                <div style={{ marginTop: 8, fontSize: 12, color: '#333', background: '#f6f6f6', borderRadius: 4, padding: 6, minHeight: 24 }}>
-                  {runResults[idx] && <div>运行结果：<pre style={{ margin: 0 }}>{runResults[idx]}</pre></div>}
-                </div>
+                  style={{ fontSize: 12, background: '#3498db', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer', marginRight: 8 }}
+                  onClick={() => handleRunCode(block, idx)}
+                >运行</button>
+                <span>
+                  {block.language}
+                  <span style={{ color: '#888', fontWeight: 'normal', marginLeft: 8 }}>第{block.page}页</span>
+                </span>
               </div>
-            ))
-          ) : (
-            <div className="h-full bg-transparent p-4 flex items-center justify-center text-gray-400">
-              <div className="text-center">
-                <div>点击PDF上的代码块以在此处查看和编辑</div>
+              <textarea
+                style={{ width: '100%', minHeight: 100, fontFamily: 'monospace', fontSize: 13, border: '1px solid #eee', borderRadius: 4, padding: 8, resize: 'vertical', background: '#fafbfc', color: '#222', marginBottom: 8 }}
+                value={block.content}
+                onChange={e => {
+                  const newContent = e.target.value;
+                  setSelectedBlocks(prev => prev.map((b, i) => i === idx ? { ...b, content: newContent } : b));
+                }}
+                spellCheck={false}
+                readOnly={false}
+                tabIndex={0}
+                onContextMenu={() => {}}
+              />
+              <div style={{ marginTop: 8, fontSize: 12, color: '#333', background: '#f6f6f6', borderRadius: 4, padding: 6, minHeight: 24 }}>
+                {runResults[idx] && <div>运行结果：<pre style={{ margin: 0 }}>{runResults[idx]}</pre></div>}
               </div>
             </div>
-          )}
-        </div>
-
-        {/* PDF查看器 */}
-        <div style={{ 
-          width: '60%', 
-          position: 'relative',
-          marginLeft: '20%',
-          height: '100vh',
-          zIndex: 10
-        }}>
-          <PDFViewer 
-            filePath={filePath} 
-            onPageChange={setCurrentPage}
-            onMouseDown={handlePDFClick}
-            onMouseMove={handleMouseMove}
-          >
-            <CodeBlockBorders page={currentPage} />
-            <CommentOverlay 
-              comments={comments} 
-              previewPosition={previewPosition}
-            />
-          </PDFViewer>
-          <div style={{ 
-            position: 'absolute', 
-            bottom: 20, 
-            right: 20, 
-            zIndex: 9999,
-            pointerEvents: 'none'
-          }}>
-            <div style={{ pointerEvents: 'auto' }}>
-              <CommentToolbar
-                currentMode={currentMode}
-                onModeChange={setCurrentMode}
-                onAddComment={handleCommentSubmit}
-                showDialog={showDialog}
-                pendingPosition={previewPosition}
-                onCancelDialog={() => {
-                  setShowDialog(false);
-                  setPreviewPosition(null);
-                  setTempPosition(null);
-                }}
-              />
+          ))
+        ) : (
+          <div className="h-full bg-transparent p-4 flex items-center justify-center text-gray-400">
+            <div className="text-center">
+              <div>点击PDF上的代码块以在此处查看和编辑</div>
             </div>
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* 右侧评论面板 */}
+      {/* PDF查看器 */}
+      <div style={{ 
+        width: '60%', 
+        position: 'relative',
+        marginLeft: '20%',
+        height: '100vh',
+        zIndex: 10
+      }}>
+        <PDFViewer 
+          filePath={filePath} 
+          onPageChange={setCurrentPage}
+          onMouseDown={handlePDFClick}
+          onMouseMove={handleMouseMove}
+        >
+          <CodeBlockBorders page={currentPage} />
+          <CommentOverlay 
+            comments={comments} 
+            previewPosition={previewPosition}
+            page={currentPage}
+          />
+        </PDFViewer>
         <div style={{ 
-          width: '20%', 
-          background: 'transparent',
-          position: 'absolute',
-          right: 0,
-          top: 0,
-          bottom: 0,
-          zIndex: 20,
-          overflowY: 'auto'
+          position: 'absolute', 
+          bottom: 20, 
+          right: 20, 
+          zIndex: 9999,
+          pointerEvents: 'none'
         }}>
-          {openPanels.length > 0 ? (
-            <SidePanelContainer />
-          ) : (
-            <div className="h-full bg-transparent p-4 flex items-center justify-center text-gray-400">
-              <div className="text-center">
-                <div>点击PDF上的评论或代码以在此处查看详情</div>
-              </div>
-            </div>
-          )}
+          <div style={{ pointerEvents: 'auto' }}>
+            <CommentToolbar
+              currentMode={currentMode}
+              onModeChange={setCurrentMode}
+              onAddComment={handleCommentSubmit}
+              showDialog={showDialog}
+              pendingPosition={previewPosition}
+              onCancelDialog={() => {
+                setShowDialog(false);
+                setPreviewPosition(null);
+                setTempPosition(null);
+              }}
+            />
+          </div>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <PanelGroup direction="horizontal" style={{ height: 'calc(100vh - 72px)' }}>
-      <Panel defaultSize={20} minSize={15} maxSize={25}>
-        <CurrentPageCodeDisplay codeBlocks={allBlocks.filter(b => b.page === currentPage)} />
-      </Panel>
-      <PanelResizeHandle className={styles.resizeHandle} />
-      
-      <Panel defaultSize={60} minSize={40}>
-        <div style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
-          <PDFViewer 
-            filePath={filePath}
-            onPageChange={setCurrentPage}
-            onMouseDown={handlePDFClick}
-            onMouseMove={handleMouseMove}
-          >
-            {codeBlockError && (
-              <div style={{ position: 'absolute', top: 20, left: 0, right: 0, zIndex: 100, color: 'red', textAlign: 'center', fontWeight: 'bold', background: 'rgba(255,255,255,0.9)', padding: 12, borderRadius: 8 }}>
-                {codeBlockError}
-              </div>
-            )}
-            <CodeBlockBorders page={currentPage} />
-            <CommentOverlay 
-              comments={comments} 
-              previewPosition={previewPosition}
-            />
-          </PDFViewer>
-          <div style={{ 
-            position: 'absolute', 
-            bottom: 20, 
-            right: 20, 
-            zIndex: 9999,
-            pointerEvents: 'none'
-          }}>
-            <div style={{ pointerEvents: 'auto' }}>
-              <CommentToolbar
-                currentMode={currentMode}
-                onModeChange={setCurrentMode}
-                onAddComment={handleCommentSubmit}
-                showDialog={showDialog}
-                pendingPosition={previewPosition}
-                onCancelDialog={() => {
-                  setShowDialog(false);
-                  setPreviewPosition(null);
-                  setTempPosition(null);
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </Panel>
-      <PanelResizeHandle className={styles.resizeHandle} />
-      
-      <Panel defaultSize={20} minSize={15} maxSize={30}>
+      {/* 右侧评论面板 */}
+      <div style={{ 
+        width: '20%', 
+        background: 'transparent',
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 20,
+        overflowY: 'auto'
+      }}>
         {openPanels.length > 0 ? (
           <SidePanelContainer />
         ) : (
@@ -617,8 +618,8 @@ const PageLayout: React.FC<{ filePath: string; username: string }> = ({ filePath
             </div>
           </div>
         )}
-      </Panel>
-    </PanelGroup>
+      </div>
+    </div>
   );
 };
 

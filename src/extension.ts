@@ -28,12 +28,12 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "test-combine" is now active!');
+    console.log('Congratulations, your extension "CourseAwareIDE" is now active!');
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('test-combine.openWebview', async () => {
+	const disposable = vscode.commands.registerCommand('CourseAwareIDE.openWebview', async () => {
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
 		if (panel) {
@@ -1769,7 +1769,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(disposable);
 
-	const treeView = vscode.window.createTreeView('test-combine-treeview', {
+	const treeView = vscode.window.createTreeView('CourseAwareIDE-treeview', {
 		treeDataProvider: {
 		// 返回空数组，这样 tree 里根本没有节点
 		getChildren: () => Promise.resolve([]),
@@ -1783,7 +1783,7 @@ export function activate(context: vscode.ExtensionContext) {
 	treeView.onDidChangeVisibility(e => {
 		if (e.visible) {
 		// 打开你的 Webview
-		vscode.commands.executeCommand('test-combine.openWebview').then(() => {
+		vscode.commands.executeCommand('CourseAwareIDE.openWebview').then(() => {
 			// 然后把侧边栏切回 Explorer，这样真正看不见那个空空的 treeview
 			vscode.commands.executeCommand('workbench.view.explorer');
 		});

@@ -58,7 +58,7 @@ describe('extension.activate', () => {
   it('registers openWebview command', async () => {
     await activate(context);
     expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
-      'test-combine.openWebview',
+      'CourseAwareIDE.openWebview',
       expect.any(Function)
     );
     expect(context.subscriptions).toHaveLength(2);

@@ -71,7 +71,7 @@ describe('extension.activate', () => {
     });
     it('registers openWebview command', async () => {
         await (0, extension_1.activate)(context);
-        expect(vscode.commands.registerCommand).toHaveBeenCalledWith('test-combine.openWebview', expect.any(Function));
+        expect(vscode.commands.registerCommand).toHaveBeenCalledWith('CourseAwareIDE.openWebview', expect.any(Function));
         expect(context.subscriptions).toHaveLength(1);
     });
     it('command callback calls showInformationMessage and supabase test and reads html', async () => {

@@ -1,8 +1,9 @@
 {
-  "name": "test-combine",
-  "displayName": "test_combine",
-  "description": "ccc",
-  "version": "0.0.1",
+  "name": "CourseAwareIDE",
+  "displayName": "CourseAwareIDE",
+  "publisher": "jianuo",
+  "description": "A powerful IDE for courseware development.",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.100.2"
   },
@@ -10,13 +11,13 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:test-combine.openWebview"
+    "onCommand:CourseAwareIDE.openWebview"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "test-combine.openWebview",
+        "command": "CourseAwareIDE.openWebview",
         "title": "Open Webview"
       },
       {
@@ -35,26 +36,26 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "test-combine-sidebar",
+          "id": "CourseAwareIDE-sidebar",
           "title": "Course IDE",
           "icon": "media/icon.svg"
         }
       ]
     },
     "views": {
-      "test-combine-sidebar": [
+      "CourseAwareIDE-sidebar": [
         {
-          "id": "test-combine-treeview",
+          "id": "CourseAwareIDE-treeview",
           "name": "⚡ Open Webview"
         }
       ]
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run package",
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p .",
     "watch": "tsc -p . --watch",
-    "package": "npm run compile",
+    "package": "vsce package",
     "lint": "eslint src",
     "test:backend": "jest --config jest.config.js --runInBand"
   },
