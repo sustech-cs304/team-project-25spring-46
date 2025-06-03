@@ -11,4 +11,5 @@ cd ..
 
 call npm run compile
 
+call npm run bundle
 pause

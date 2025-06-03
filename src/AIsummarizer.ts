@@ -1,6 +1,6 @@
 // src/AIsummarizer.ts
 import * as fs from 'fs';
-import pdf from 'pdf-parse';
+import pdf from 'pdf-parse-debugging-disabled';
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Agent as HttpsAgent } from 'https';
 import apiKey from './apikey';

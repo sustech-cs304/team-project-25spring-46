@@ -1,8 +1,10 @@
 .vscode/**
 .vscode-test/**
+vite_test/node_modules/**
 node_modules/**
 src/**
 .gitignore
+.git/
 .yarnrc
 esbuild.js
 vsc-extension-quickstart.md
